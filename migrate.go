@@ -1,17 +1,8 @@
 package migrate
 
+var timestampFormat  = "20060102150405"
+
 type Direction int
-
-type Credentials struct {
-	DriverName string
-	Host       string
-	Port       string
-	DBName     string
-	User       string
-	Passwd     string
-}
-
-var supportedDrivers = []string{"postgres", "mysql", "sqlite"}
 
 const (
 	directionError = Direction(iota)
@@ -28,4 +19,13 @@ func (d Direction) String() string {
 		s = "down"
 	}
 	return s
+}
+
+type Credentials struct {
+	DriverName string
+	DBName     string
+	Host       string
+	Port       string
+	User       string
+	Passwd     string
 }

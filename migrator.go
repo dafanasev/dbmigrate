@@ -1,8 +1,8 @@
 package migrate
 
 import (
+	"database/sql"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,51 +19,101 @@ type Migrator struct {
 	migrationsDir string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
-	// db operations
-	dbWrapper
+	driver string
+	dbname string
+	db *sql.DB
+	placeholdersProvider placeholdersProvider
 }
 
 // NewMigrator returns migrator instance
-func NewMigrator(credentials Credentials) (*Migrator, error) {
+func NewMigrator(credentials *Credentials) (*Migrator, error) {
 	m := &Migrator{}
 	
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, errors.Wrap(err,"Can't get working directory")
 	}
+
+	// TODO: validate credentials
+	m.driver = credentials.DriverName
+	m.dbname = credentials.DBName
 	
 	m.projectDir, err = m.findProjectDir(wd)
 	if err != nil {
 		return nil, err
 	}
 	
-	driverName := strings.ToLower(credentials.DriverName)
-	if !isValidString(driverName, supportedDrivers) {
-		return nil, errors.Errorf("unknown database driverName %s", driverName)
+	if !isValidString(credentials.DriverName, supportedDrivers) {
+		return nil, errors.Errorf("unknown database driver name %s", credentials.DriverName)
 	}
 	
-	switch driverName {
-	case "postgresql", "postgres", "pg":
-		m.dbWrapper = &postgresWrapper{}
+	var provider dsnProvider
+	switch credentials.DriverName {
+	case "postgres":
+		provider = &postgresProvider{}
 	case "mysql":
-		m.dbWrapper = &mySQLWrapper{}
+		provider = &mysqlProvider{}
 	case "sqlite":
-		m.dbWrapper = &sqliteWrapper{}
+		provider = &sqliteProvider{}
+	}
+	
+	dsn, err := provider.dsn(credentials)
+	if err != nil {
+	    return nil, err
+	}
+	
+	m.db, err = sql.Open(credentials.DriverName, dsn)
+	
+	if pp, ok := provider.(placeholdersProvider); ok {
+		m.placeholdersProvider = pp
 	}
 	
 	return m, nil
 }
 
+func (m *Migrator) Done() error {
+	err := m.db.Close()
+	if err != nil {
+	    return errors.Wrap(err, "Error shutting down migrator")
+	}
+	return nil
+}
+
+func (m *Migrator) setPlaceholders(sql string) string {
+	if m.placeholdersProvider != nil {
+		return m.placeholdersProvider.setPlaceholders(sql)
+	}
+	return sql
+}
+
 func (m *Migrator) CreateDB() error {
-	return m.createDB()
+	_, err := m.db.Query(m.setPlaceholders("CREATE DATABASE ?"), m.dbname)
+	if err != nil {
+	    return errors.Wrapf(err, "Can't create database %s, probably it is already exists", m.dbname)
+	}
+	return nil
 }
 
 func (m *Migrator) DropDB() error {
-	return m.dropDB()
+	// TODO: cannot drop the currently open database, use other method
+	return nil
+}
+
+func (m *Migrator) createMigrationsTable() error {
+	_, err := m.db.Query(m.setPlaceholders("CREATE TABLE migrations (version timestamp NOT NULL, PRIMARY KEY(version));"))
+	if err != nil {
+		return errors.Wrapf(err, "Can't create migrations table")
+	}
+	return nil
 }
 
 func (m *Migrator) GetCurrentVersion() (time.Time, error) {
-	return m.getCurrentVersion()
+	var v time.Time
+	err := m.db.QueryRow("SELECT version FROM migrations ORDER BY version DESC LIMIT 1").Scan(&v)
+	if err != nil {
+	    return time.Time{}, errors.Wrap(err, "Can't get current version")
+	}
+	return v, nil
 }
 
 func (m *Migrator) Run(direction Direction) {
@@ -79,7 +129,7 @@ func (m *Migrator) RunSteps(direction Direction, steps uint) {
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
 func (m *Migrator) findProjectDir(dirPath string) (string, error) {
-	if dirExists(path.Join(dirPath, m.migrationsDir)) {
+	if dirExists(filepath.Join(dirPath, m.migrationsDir)) {
 		return dirPath, nil
 	}
 	
@@ -87,13 +137,13 @@ func (m *Migrator) findProjectDir(dirPath string) (string, error) {
 		return "", errors.New("Project dir not found")
 	}
 	
-	return m.findProjectDir(path.Dir(dirPath))
+	return m.findProjectDir(filepath.Dir(dirPath))
 }
 
 // findNeededMigrations finds all valid migrations in the migrations dir
 func (m *Migrator) findNeededMigrations(direction Direction, steps uint) []*migration {
 	migrations := make([]*migration, 0)
-	migrationsDirPath := path.Join(m.projectDir, m.migrationsDir)
+	migrationsDirPath := filepath.Join(m.projectDir, m.migrationsDir)
 	
 	filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
 		if mpath != migrationsDirPath && info.IsDir() {
@@ -102,7 +152,7 @@ func (m *Migrator) findNeededMigrations(direction Direction, steps uint) []*migr
 		if info.IsDir() {
 			return nil
 		}
-		if strings.ToLower(path.Ext(mpath)) != "sql" {
+		if strings.ToLower(filepath.Ext(mpath)) != "sql" {
 			return nil
 		}
 		
@@ -114,12 +164,12 @@ func (m *Migrator) findNeededMigrations(direction Direction, steps uint) []*migr
 		
 		// migration that should be run on specific dbWrapper only
 		if len(parts) > 3 {
-			if parts[3] != m.dbWrapper.driverName() {
+			if parts[3] != m.driver {
 			    return nil
 			}
 		}
 		
-		ts, err := time.Parse("20060102150405", parts[0])
+		ts, err := time.Parse(timestampFormat, parts[0])
 		if err != nil {
 			return nil
 		}
