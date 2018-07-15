@@ -8,6 +8,10 @@ import (
 	"time"
 	
 	"github.com/pkg/errors"
+	
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Migrator struct {
@@ -17,12 +21,12 @@ type Migrator struct {
 	projectDir string
 	// migration direction
 	direction
-	// database driver
-	Driver database
+	// sqlBuilder driver
+	driver sqlBuilder
 }
 
-// NewMigrator return migrator instance
-func NewMigrator(conf Conf) (*Migrator, error) {
+// NewMigrator returns migrator instance
+func NewMigrator(conf Config) (*Migrator, error) {
 	m := &Migrator{}
 	
 	wd, err := os.Getwd()
@@ -40,7 +44,7 @@ func NewMigrator(conf Conf) (*Migrator, error) {
 		return nil, err
 	}
 	
-	m.Driver, err = m.driverFromString(conf.Driver)
+	m.driver, err = m.driverFromString(conf.Driver)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +53,7 @@ func NewMigrator(conf Conf) (*Migrator, error) {
 }
 
 func (m *Migrator) Run() {
-	migrations := m.findMigrations()
+	migrations := m.findNeededMigrations()
 	for _, migration := range migrations {
 		migration.run()
 	}
@@ -75,23 +79,21 @@ func (m *Migrator) directionFromString(s string) (direction, error) {
 
 // driverFromString tries to build dialect from string,
 // checking for valid ones
-func (m *Migrator) driverFromString(s string) (database, error) {
+func (m *Migrator) driverFromString(s string) (sqlBuilder, error) {
 	// TODO: more effective array lookup
 	s = strings.ToLower(s)
 	if !isValidString(s, []string{"postgresql", "postgres", "pg", "mysql", "sqlite"}) {
-		return databaseNone, errors.Errorf("unknown database %s", s)
+		return nil, errors.Errorf("unknown sqlBuilder %s", s)
 	}
 	
-	var d database
+	var d sqlBuilder
 	switch s {
 	case "postgresql", "postgres", "pg":
-		d = databasePostgres
+		d = &postgresBuilder{}
 	case "mysql":
-		d = databaseMySQL
+		d = &mySQLBuilder{}
 	case "sqlite":
-		d = databaseSQLite
-	default:
-		return databaseNone, errors.New("unknown error")
+		d = &sqliteBuilder{}
 	}
 	return d, nil
 }
@@ -109,19 +111,36 @@ func (m *Migrator) findProjectDir(dirPath string) (string, error) {
 	return m.findProjectDir(path.Dir(dirPath))
 }
 
-// findMigrations finds all valid migrations in the migrations dir
-func (m *Migrator) findMigrations() []*migration {
+// findNeededMigrations finds all valid migrations in the migrations dir
+func (m *Migrator) findNeededMigrations() []*migration {
 	migrations := make([]*migration, 0)
 	migrationsDirPath := path.Join(m.projectDir, m.migrationsDir)
+	
 	filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
 		if mpath != migrationsDirPath && info.IsDir() {
 			return filepath.SkipDir
 		}
-		if info.IsDir() || strings.ToLower(path.Ext(mpath)) != "sql" {
+		if info.IsDir() {
+			return nil
+		}
+		if strings.ToLower(path.Ext(mpath)) != "sql" {
 			return nil
 		}
 		
 		parts := strings.Split(info.Name(), ".")
+		
+		if parts[2] != m.direction.String() {
+			return nil
+		}
+		
+		// migration that should be run on specific db only
+		if len(parts) > 3 {
+			mDriver, err := m.driverFromString(parts[3])
+			if err != nil || mDriver != m.driver {
+			    return nil
+			}
+		}
+		
 		ts, err := time.Parse("20060102150405", parts[0])
 		if err != nil {
 			return nil
@@ -131,5 +150,6 @@ func (m *Migrator) findMigrations() []*migration {
 		migrations = append(migrations, &migration{name: name, timestamp: ts})
 		return nil
 	})
+	
 	return migrations
 }

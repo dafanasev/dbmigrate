@@ -1,21 +1,29 @@
 package migrate
 
-type database int
-const (
-	databaseNone = database(iota)
-	databasePostgres
-	databaseMySQL
-	databaseSQLite
-)
-
 type direction int
+
 const (
-	directionError   = direction(iota)
+	directionError = direction(iota)
 	directionUp
 	directionDown
 )
 
-type Conf struct {
-	Direction string
+func (d direction) String() string {
+	var s string
+	switch d {
+	case directionUp:
+		s = "up"
+	case directionDown:
+		s = "down"
+	}
+	return s
+}
+
+type Config struct {
 	Driver string
+	Direction string
+	Steps uint
+	DBName string
+	User string
+	Passwd string
 }
