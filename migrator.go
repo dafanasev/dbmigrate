@@ -19,14 +19,12 @@ type Migrator struct {
 	migrationsDir string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
-	// migration direction
-	direction
-	// sqlBuilder driver
-	driver sqlBuilder
+	// db operations
+	dbWrapper
 }
 
 // NewMigrator returns migrator instance
-func NewMigrator(conf Config) (*Migrator, error) {
+func NewMigrator(credentials Credentials) (*Migrator, error) {
 	m := &Migrator{}
 	
 	wd, err := os.Getwd()
@@ -39,63 +37,44 @@ func NewMigrator(conf Config) (*Migrator, error) {
 		return nil, err
 	}
 	
-	m.direction, err = m.directionFromString(conf.Direction)
-	if err != nil {
-		return nil, err
+	driverName := strings.ToLower(credentials.DriverName)
+	if !isValidString(driverName, supportedDrivers) {
+		return nil, errors.Errorf("unknown database driverName %s", driverName)
 	}
 	
-	m.driver, err = m.driverFromString(conf.Driver)
-	if err != nil {
-		return nil, err
+	switch driverName {
+	case "postgresql", "postgres", "pg":
+		m.dbWrapper = &postgresWrapper{}
+	case "mysql":
+		m.dbWrapper = &mySQLWrapper{}
+	case "sqlite":
+		m.dbWrapper = &sqliteWrapper{}
 	}
 	
 	return m, nil
 }
 
-func (m *Migrator) Run() {
-	migrations := m.findNeededMigrations()
+func (m *Migrator) CreateDB() error {
+	return m.createDB()
+}
+
+func (m *Migrator) DropDB() error {
+	return m.dropDB()
+}
+
+func (m *Migrator) GetCurrentVersion() (time.Time, error) {
+	return m.getCurrentVersion()
+}
+
+func (m *Migrator) Run(direction Direction) {
+	m.RunSteps(direction, 0)
+}
+
+func (m *Migrator) RunSteps(direction Direction, steps uint) {
+	migrations := m.findNeededMigrations(direction, steps)
 	for _, migration := range migrations {
 		migration.run()
 	}
-}
-
-// directionFromString tries to build direction from string,
-// checking for valid ones
-func (m *Migrator) directionFromString(s string) (direction, error) {
-	s = strings.ToLower(s)
-	if !isValidString(s, []string{"up", "down"}) {
-		return directionError, nil
-	}
-	
-	var d direction
-	switch s {
-	case "up":
-		d = directionUp
-	case "down":
-		d = directionDown
-	}
-	return d, nil
-}
-
-// driverFromString tries to build dialect from string,
-// checking for valid ones
-func (m *Migrator) driverFromString(s string) (sqlBuilder, error) {
-	// TODO: more effective array lookup
-	s = strings.ToLower(s)
-	if !isValidString(s, []string{"postgresql", "postgres", "pg", "mysql", "sqlite"}) {
-		return nil, errors.Errorf("unknown sqlBuilder %s", s)
-	}
-	
-	var d sqlBuilder
-	switch s {
-	case "postgresql", "postgres", "pg":
-		d = &postgresBuilder{}
-	case "mysql":
-		d = &mySQLBuilder{}
-	case "sqlite":
-		d = &sqliteBuilder{}
-	}
-	return d, nil
 }
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
@@ -112,7 +91,7 @@ func (m *Migrator) findProjectDir(dirPath string) (string, error) {
 }
 
 // findNeededMigrations finds all valid migrations in the migrations dir
-func (m *Migrator) findNeededMigrations() []*migration {
+func (m *Migrator) findNeededMigrations(direction Direction, steps uint) []*migration {
 	migrations := make([]*migration, 0)
 	migrationsDirPath := path.Join(m.projectDir, m.migrationsDir)
 	
@@ -129,14 +108,13 @@ func (m *Migrator) findNeededMigrations() []*migration {
 		
 		parts := strings.Split(info.Name(), ".")
 		
-		if parts[2] != m.direction.String() {
+		if parts[2] != direction.String() {
 			return nil
 		}
 		
-		// migration that should be run on specific db only
+		// migration that should be run on specific dbWrapper only
 		if len(parts) > 3 {
-			mDriver, err := m.driverFromString(parts[3])
-			if err != nil || mDriver != m.driver {
+			if parts[3] != m.dbWrapper.driverName() {
 			    return nil
 			}
 		}

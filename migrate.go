@@ -1,29 +1,31 @@
 package migrate
 
-type direction int
+type Direction int
+
+type Credentials struct {
+	DriverName string
+	Host       string
+	Port       string
+	DBName     string
+	User       string
+	Passwd     string
+}
+
+var supportedDrivers = []string{"postgres", "mysql", "sqlite"}
 
 const (
-	directionError = direction(iota)
-	directionUp
-	directionDown
+	directionError = Direction(iota)
+	DirectionUp
+	DirectionDown
 )
 
-func (d direction) String() string {
+func (d Direction) String() string {
 	var s string
 	switch d {
-	case directionUp:
+	case DirectionUp:
 		s = "up"
-	case directionDown:
+	case DirectionDown:
 		s = "down"
 	}
 	return s
-}
-
-type Config struct {
-	Driver string
-	Direction string
-	Steps uint
-	DBName string
-	User string
-	Passwd string
 }

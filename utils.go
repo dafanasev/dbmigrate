@@ -25,3 +25,21 @@ func isValidString(s string, validOptions []string) bool {
 	}
 	return false
 }
+
+// DirectionFromString tries to build Direction from string,
+// checking for valid ones
+func DirectionFromString(s string) (Direction, error) {
+	s = strings.ToLower(s)
+	if !isValidString(s, []string{"up", "down"}) {
+		return directionError, nil
+	}
+	
+	var d Direction
+	switch s {
+	case "up":
+		d = DirectionUp
+	case "down":
+		d = DirectionDown
+	}
+	return d, nil
+}
