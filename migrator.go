@@ -71,6 +71,7 @@ func NewMigrator(credentials *Credentials) (*Migrator, error) {
 	return m, nil
 }
 
+// Done frees resources acquired by migrator
 func (m *Migrator) Done() error {
 	err := m.db.Close()
 	if err != nil {
@@ -158,22 +159,21 @@ func (m *Migrator) findNeededMigrations(direction Direction, steps uint) []*migr
 		
 		parts := strings.Split(info.Name(), ".")
 		
-		if parts[2] != direction.String() {
-			return nil
-		}
-		
-		// migration that should be run on specific dbWrapper only
-		if len(parts) > 3 {
-			if parts[3] != m.driver {
-			    return nil
-			}
-		}
-		
 		ts, err := time.Parse(timestampFormat, parts[0])
 		if err != nil {
 			return nil
 		}
+		
 		name := parts[1]
+		
+		if parts[2] != direction.String() {
+			return nil
+		}
+		
+		// migration that should be run on specific db only
+		if len(parts) > 3 && parts[3] != m.driver {
+			return nil
+		}
 		
 		migrations = append(migrations, &migration{name: name, timestamp: ts})
 		return nil
