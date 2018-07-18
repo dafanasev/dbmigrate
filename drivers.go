@@ -1,8 +1,8 @@
 package migrate
 
 import (
-	"fmt"
-	"strings"
+	"database/sql"
+	"time"
 	
 	"github.com/pkg/errors"
 )
@@ -13,99 +13,54 @@ var (
 	errUserNotProvided   = errors.New("user is not provided")
 )
 
-func init() {
-	drivers["postgres"] = &postgresDriver{}
-	drivers["mysql"]    = &mysqlDriver{}
-	drivers["sqlite"]   = &sqliteDriver{}
-}
-
-
 type driver interface {
-	dsn(cr *Credentials) (string, error)
-}
-
-
-type placeholdersProvider interface {
+	name() string
+	dsn() (string, error)
+	open() error
+	close() error
 	setPlaceholders(string) string
 }
 
-
-type postgresDriver struct {}
-
-func (w *postgresDriver) dsn(cr *Credentials) (string, error) {
-	kvs := []string{}
-	
-	if cr.DBName == "" {
-		return "", errDBNameNotProvided
-	}
-	kvs = append(kvs, "dbname=" + cr.DBName)
-	
-	if cr.User == "" {
-		return "", errUserNotProvided
-	}
-	kvs = append(kvs, "user=" +  cr.User)
-	
-	if cr.Passwd != "" {
-		kvs = append(kvs, "password=" + cr.Passwd)
-	}
-	
-	if cr.Host != "" {
-		kvs = append(kvs, "host=" + cr.Host)
-	}
-	
-	if cr.Port != "" {
-		kvs = append(kvs, "port=" + cr.Port)
-	}
-	
-	return strings.Join(kvs, " "), nil
+type commonDriver struct {
+	cr *Credentials
+	db *sql.DB
 }
 
-func (w *postgresDriver) setPlaceholders(s string) string {
-	counter := 1
-	for strings.Index(s, "?") != -1 {
-		s = strings.Replace("s", "?", fmt.Sprintf("$%d", counter), 1)
-		counter++
+func (d *commonDriver) close() error {
+	err := d.db.Close()
+	if err != nil {
+		return errors.Wrap(err, "Error shutting down migrator")
 	}
+	return nil
+}
+
+func (d *commonDriver) setPlaceholders(s string) string {
 	return s
 }
 
-
-type mysqlDriver struct {}
-
-func (w *mysqlDriver) dsn(cr *Credentials) (string, error) {
-	if cr.DBName == "" {
-		return "", errDBNameNotProvided
+func (d *commonDriver) findAppliedMigrationsVersions() ([]time.Time, error) {
+	rows, err := d.db.Query("SELECT version FROM migrations")
+	if err != nil {
+		return nil, errors.Wrap(err, "can't get executed migrations versions")
 	}
+	defer rows.Close()
 	
-	if cr.User == "" {
-		return "", errUserNotProvided
+	vs := []time.Time{}
+	var v time.Time
+	for rows.Next() {
+		err = rows.Scan(&v)
+		if err != nil {
+			return nil, errors.Wrap(err, "can't scan migration version row")
+		}
+		vs = append(vs, v)
 	}
-	
-	up := cr.User
-	
-	if cr.Passwd != "" {
-		up += ":" + cr.Passwd
-	}
-	
-	host := cr.Host
-	if host == "" {
-		host = "127.0.0.1"
-	}
-	port := cr.Port
-	if port == "" {
-		port = "3306"
-	}
-	
-	return fmt.Sprintf("%s@tcp(%s:%s)/%s?parseTime=true", up, host, port, cr.DBName), nil
+	return vs, nil
 }
 
-
-type sqliteDriver struct {}
-
-func (w *sqliteDriver) dsn(cr *Credentials) (string, error) {
-	if cr.DBName == "" {
-		return "", errDBNameNotProvided
+func (d *commonDriver) createMigrationsTable() error {
+	_, err := d.db.Query(d.setPlaceholders("CREATE TABLE migrations (version timestamp NOT NULL, PRIMARY KEY(version));"))
+	if err != nil {
+		return errors.Wrapf(err, "Can't create migrations table")
 	}
-	
-	return "./" + cr.DBName, nil
+	return nil
 }

@@ -1,7 +1,6 @@
 package migrate
 
 import (
-	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,10 +20,7 @@ type Migrator struct {
 	migrationsDir string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
-	driver string
-	dbname string
-	db *sql.DB
-	placeholdersProvider placeholdersProvider
+	driver driver
 }
 
 // NewMigrator returns migrator instance
@@ -35,14 +31,7 @@ func NewMigrator(credentials *Credentials) (*Migrator, error) {
 	if !ok {
 		return nil, errors.Errorf("unknown database driver name %s", credentials.DriverName)
 	}
-	
-	dsn, err := driver.dsn(credentials)
-	if err != nil {
-		return nil, err
-	}
-	
-	m.driver = credentials.DriverName
-	m.dbname = credentials.DBName
+	m.driver = driver
 	
 	wd, err := os.Getwd()
 	if err != nil {
@@ -54,65 +43,12 @@ func NewMigrator(credentials *Credentials) (*Migrator, error) {
 		return nil, err
 	}
 	
-	m.db, err = sql.Open(credentials.DriverName, dsn)
-	
-	if pp, ok := driver.(placeholdersProvider); ok {
-		m.placeholdersProvider = pp
-	}
-	
 	return m, nil
 }
 
 // Done frees resources acquired by migrator
 func (m *Migrator) Done() error {
-	err := m.db.Close()
-	if err != nil {
-	    return errors.Wrap(err, "Error shutting down migrator")
-	}
-	return nil
-}
-
-func (m *Migrator) setPlaceholders(sql string) string {
-	if m.placeholdersProvider != nil {
-		return m.placeholdersProvider.setPlaceholders(sql)
-	}
-	return sql
-}
-
-func (m *Migrator) createMigrationsTable() error {
-	_, err := m.db.Query(m.setPlaceholders("CREATE TABLE migrations (version timestamp NOT NULL, PRIMARY KEY(version));"))
-	if err != nil {
-		return errors.Wrapf(err, "Can't create migrations table")
-	}
-	return nil
-}
-
-func (m *Migrator) GetCurrentVersion() (time.Time, error) {
-	var v time.Time
-	err := m.db.QueryRow("SELECT version FROM migrations ORDER BY version DESC LIMIT 1").Scan(&v)
-	if err != nil {
-	    return time.Time{}, errors.Wrap(err, "Can't get current version")
-	}
-	return v, nil
-}
-
-func (m *Migrator) findAppliedMigrationsVersions() ([]time.Time, error) {
-	rows, err := m.db.Query("SELECT version FROM migrations")
-	if err != nil {
-	    return nil, errors.Wrap(err, "can't get executed migrations versions")
-	}
-	defer rows.Close()
-	
-	vs := []time.Time{}
-	var v time.Time
-	for rows.Next() {
-		err = rows.Scan(&v)
-		if err != nil {
-			return nil, errors.Wrap(err, "can't scan migration version row")
-		}
-		vs = append(vs, v)
-	}
-	return vs, nil
+	return m.driver.close()
 }
 
 func (m *Migrator) Run(direction Direction) {
@@ -169,7 +105,7 @@ func (m *Migrator) findUnappliedMigrations(direction Direction, steps uint) []*m
 		}
 		
 		// migration that should be run on specific db only
-		if len(parts) > 3 && parts[3] != m.driver {
+		if len(parts) > 3 && parts[3] != m.driver.name() {
 			return nil
 		}
 		
