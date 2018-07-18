@@ -7,26 +7,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-var supportedDrivers = []string{"postgres", "mysql", "sqlite"}
+var drivers = make(map[string]driver)
 var (
 	errDBNameNotProvided = errors.New("db name is not provided")
 	errUserNotProvided   = errors.New("user is not provided")
 )
+
+func init() {
+	drivers["postgres"] = &postgresDriver{}
+	drivers["mysql"]    = &mysqlDriver{}
+	drivers["sqlite"]   = &sqliteDriver{}
+}
+
+
+type driver interface {
+	dsn(cr *Credentials) (string, error)
+}
+
 
 type placeholdersProvider interface {
 	setPlaceholders(string) string
 }
 
 
-type dsnProvider interface {
-	dsn(cr *Credentials) (string, error)
-}
+type postgresDriver struct {}
 
-
-type postgresProvider struct {}
-
-func (w *postgresProvider) dsn(cr *Credentials) (string, error) {
-	kvs := make([]string, 2)
+func (w *postgresDriver) dsn(cr *Credentials) (string, error) {
+	kvs := []string{}
 	
 	if cr.DBName == "" {
 		return "", errDBNameNotProvided
@@ -53,7 +60,7 @@ func (w *postgresProvider) dsn(cr *Credentials) (string, error) {
 	return strings.Join(kvs, " "), nil
 }
 
-func (w *postgresProvider) setPlaceholders(s string) string {
+func (w *postgresDriver) setPlaceholders(s string) string {
 	counter := 1
 	for strings.Index(s, "?") != -1 {
 		s = strings.Replace("s", "?", fmt.Sprintf("$%d", counter), 1)
@@ -63,9 +70,9 @@ func (w *postgresProvider) setPlaceholders(s string) string {
 }
 
 
-type mysqlProvider struct {}
+type mysqlDriver struct {}
 
-func (w *mysqlProvider) dsn(cr *Credentials) (string, error) {
+func (w *mysqlDriver) dsn(cr *Credentials) (string, error) {
 	if cr.DBName == "" {
 		return "", errDBNameNotProvided
 	}
@@ -93,9 +100,9 @@ func (w *mysqlProvider) dsn(cr *Credentials) (string, error) {
 }
 
 
-type sqliteProvider struct {}
+type sqliteDriver struct {}
 
-func (w *sqliteProvider) dsn(cr *Credentials) (string, error) {
+func (w *sqliteDriver) dsn(cr *Credentials) (string, error) {
 	if cr.DBName == "" {
 		return "", errDBNameNotProvided
 	}
