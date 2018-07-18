@@ -2,6 +2,7 @@ package migrate
 
 import (
 	"database/sql"
+	"path/filepath"
 	
 	"github.com/pkg/errors"
 )
@@ -35,6 +36,10 @@ func (d *sqliteDriver) open() error {
 func (d *sqliteDriver) dsn() (string, error) {
 	if d.cr.DBName == "" {
 		return "", errDBNameNotProvided
+	}
+	
+	if filepath.IsAbs(d.cr.DBName) {
+		return d.cr.DBName, nil
 	}
 	
 	return "./" + d.cr.DBName, nil

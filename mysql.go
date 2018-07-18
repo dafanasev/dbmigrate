@@ -42,12 +42,6 @@ func (d *mysqlDriver) dsn() (string, error) {
 		return "", errUserNotProvided
 	}
 	
-	up := d.cr.User
-	
-	if d.cr.Passwd != "" {
-		up += ":" + d.cr.Passwd
-	}
-	
 	host := d.cr.Host
 	if host == "" {
 		host = "127.0.0.1"
@@ -57,5 +51,5 @@ func (d *mysqlDriver) dsn() (string, error) {
 		port = "3306"
 	}
 	
-	return fmt.Sprintf("%s@tcp(%s:%s)/%s?parseTime=true", up, host, port, d.cr.DBName), nil
+	return fmt.Sprintf("%:%s@tcp(%s:%s)/%s?parseTime=true", d.cr.User, d.cr.Passwd, port, d.cr.DBName), nil
 }
