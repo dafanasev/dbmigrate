@@ -22,10 +22,12 @@ func (d Direction) String() string {
 }
 
 type Credentials struct {
-	DriverName string
-	DBName     string
-	Host       string
-	Port       string
-	User       string
-	Passwd     string
+	DriverName      string
+	DBName          string
+	Host            string
+	Port            string
+	User            string
+	Passwd          string
+	MigrationsDir   string
+	MigrationsTable string
 }

@@ -6,9 +6,11 @@ func init() {
 	providers["mysql"] = &mysqlProvider{}
 }
 
-type mysqlProvider struct {}
+type mysqlProvider struct {
+	defaultProvider
+}
 
-func (d *mysqlProvider) dsn(cr *Credentials) (string, error) {
+func (p *mysqlProvider) dsn(cr *Credentials) (string, error) {
 	if cr.DBName == "" {
 		return "", errDBNameNotProvided
 	}
@@ -26,5 +28,5 @@ func (d *mysqlProvider) dsn(cr *Credentials) (string, error) {
 		port = "3306"
 	}
 	
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", cr.User, cr.Passwd, port, cr.DBName), nil
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", cr.User, cr.Passwd, host, port, cr.DBName), nil
 }

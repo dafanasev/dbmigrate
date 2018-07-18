@@ -8,7 +8,7 @@ func init() {
 
 type sqliteProvider struct {}
 
-func (d *sqliteProvider) dsn(cr *Credentials) (string, error) {
+func (p *sqliteProvider) dsn(cr *Credentials) (string, error) {
 	if cr.DBName == "" {
 		return "", errDBNameNotProvided
 	}
@@ -20,3 +20,6 @@ func (d *sqliteProvider) dsn(cr *Credentials) (string, error) {
 	return "./" + cr.DBName, nil
 }
 
+func (p *sqliteProvider) hasTableQuery() string {
+	return "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
+}

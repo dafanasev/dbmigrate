@@ -7,10 +7,6 @@ import (
 	"time"
 	
 	"github.com/pkg/errors"
-	
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 const allSteps = 0
@@ -18,6 +14,8 @@ const allSteps = 0
 type Migrator struct {
 	// dir holding migrations
 	migrationsDir string
+	// migrations table
+	migrationsTable string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
 	driver *driver
@@ -25,7 +23,14 @@ type Migrator struct {
 
 // NewMigrator returns migrator instance
 func NewMigrator(credentials *Credentials) (*Migrator, error) {
-	m := &Migrator{}
+	if credentials.MigrationsDir == "" {
+		credentials.MigrationsDir = "migrations"
+	}
+	if credentials.MigrationsTable == "" {
+		credentials.MigrationsTable = "migrations"
+	}
+	
+	m := &Migrator{migrationsDir: credentials.MigrationsDir, migrationsTable: credentials.MigrationsTable}
 	
 	provider, ok := providers[credentials.DriverName]
 	if !ok {
@@ -60,6 +65,10 @@ func (m *Migrator) RunSteps(direction Direction, steps uint) {
 	for _, migration := range migrations {
 		migration.run()
 	}
+}
+
+func (m *Migrator) LastMigration() (time.Time, error) {
+	return m.driver.lastMigrationVersion()
 }
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)

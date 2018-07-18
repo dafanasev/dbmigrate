@@ -11,10 +11,16 @@ type placeholdersProvider interface {
 }
 
 type sqlProvider interface {
-
+	hasTableQuery() string
 }
 
 type provider interface {
 	dsnProvider
 	sqlProvider
+}
+
+type defaultProvider struct {}
+
+func (p *defaultProvider) hasTableQuery() string {
+	return "SELECT table_name FROM information_schema.tables WHERE table_name = ?"
 }

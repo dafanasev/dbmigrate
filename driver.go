@@ -5,6 +5,10 @@ import (
 	"time"
 	
 	"github.com/pkg/errors"
+	
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -52,10 +56,47 @@ func (d *driver) close() error {
 	return nil
 }
 
-func (d *driver) appliedMigrations() ([]time.Time, error) {
-	rows, err := d.db.Query("SELECT version FROM migrations ASC")
+func (d *driver) setPlaceholders(s string) string {
+	if d.placeholdersProvider == nil {
+		return s
+	}
+	return d.placeholdersProvider.setPlaceholders(s)
+}
+
+func (d *driver) hasTable() (bool, error) {
+	var table string
+	err := d.db.QueryRow(d.setPlaceholders(d.provider.hasTableQuery()), d.credentials.MigrationsTable).Scan(&table)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
 	if err != nil {
-		return nil, errors.Wrap(err, "can't get executed migrations versions")
+		return false, err
+	}
+	
+	return true, nil
+}
+
+func (d *driver) createMigrationsVersions() error {
+	_, err := d.db.Exec(d.setPlaceholders("CREATE TABLE ? (version TIMESTAMP NOT NULL, PRIMARY KEY(version));"), d.credentials.MigrationsTable)
+	if err != nil {
+		return errors.Wrapf(err, "Can't create migrations table")
+	}
+	return nil
+}
+
+func (d *driver) lastMigrationVersion() (time.Time, error) {
+	var v time.Time
+	err := d.db.QueryRow(d.setPlaceholders("SELECT version FROM ? ORDER BY version DESC LIMIT 1"), d.credentials.MigrationsTable).Scan(&v)
+	if err != nil {
+	    return time.Time{}, errors.Wrap(err,"can't get last migration version")
+	}
+	return v, nil
+}
+
+func (d *driver) appliedMigrationsVersions() ([]time.Time, error) {
+	rows, err := d.db.Query(d.setPlaceholders("SELECT version FROM ? ORDER BY version ASC"), d.credentials.MigrationsTable)
+	if err != nil {
+		return nil, errors.Wrap(err, "can't get applied migrations versions")
 	}
 	defer rows.Close()
 	
@@ -71,17 +112,18 @@ func (d *driver) appliedMigrations() ([]time.Time, error) {
 	return vs, nil
 }
 
-func (d *driver) setPlaceholders(s string) string {
-	if d.placeholdersProvider == nil {
-		return s
+func (d *driver) insertMigrationVersion(version time.Time) error {
+	_, err := d.db.Exec(d.setPlaceholders("INSERT INTO ? (migration) VALUES (?)"), d.credentials.MigrationsTable, version)
+	if err != nil {
+		return errors.Wrap(err, "can't insert migration version")
 	}
-	return d.placeholdersProvider.setPlaceholders(s)
+	return nil
 }
 
-func (d *driver) createTable() error {
-	_, err := d.db.Query(d.setPlaceholders("CREATE TABLE migrations (version timestamp NOT NULL, PRIMARY KEY(version));"))
+func (d *driver) deleteMigrationVersion(version time.Time) error {
+	_, err := d.db.Exec(d.setPlaceholders("DELETE FROM ? WHERE migration = ?"), d.credentials.MigrationsTable, version)
 	if err != nil {
-		return errors.Wrapf(err, "Can't create migrations table")
+		return errors.Wrap(err, "can't delete migration version")
 	}
 	return nil
 }

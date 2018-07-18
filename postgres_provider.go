@@ -7,12 +7,14 @@ import (
 )
 
 func init() {
-	providers["postgres"] = &postgresDriver{}
+	providers["postgres"] = &postgresProvider{}
 }
 
-type postgresDriver struct {}
+type postgresProvider struct {
+	defaultProvider
+}
 
-func (d *postgresDriver) dsn(cr *Credentials) (string, error) {
+func (p *postgresProvider) dsn(cr *Credentials) (string, error) {
 	kvs := []string{}
 	
 	if cr.DBName == "" {
@@ -40,11 +42,11 @@ func (d *postgresDriver) dsn(cr *Credentials) (string, error) {
 	return strings.Join(kvs, " "), nil
 }
 
-func (d *postgresDriver) setPlaceholders(s string) string {
-	counter := 1
+func (p *postgresProvider) setPlaceholders(s string) string {
+	counter := 0
 	for strings.Index(s, "?") != -1 {
-		s = strings.Replace("s", "?", fmt.Sprintf("$%d", counter), 1)
 		counter++
+		s = strings.Replace("s", "?", fmt.Sprintf("$%d", counter), 1)
 	}
 	return s
 }
