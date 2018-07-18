@@ -20,18 +20,18 @@ type Migrator struct {
 	migrationsDir string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
-	driver driver
+	driver *driver
 }
 
 // NewMigrator returns migrator instance
 func NewMigrator(credentials *Credentials) (*Migrator, error) {
 	m := &Migrator{}
 	
-	driver, ok := drivers[credentials.DriverName]
+	provider, ok := providers[credentials.DriverName]
 	if !ok {
-		return nil, errors.Errorf("unknown database driver name %s", credentials.DriverName)
+		return nil, errors.Errorf("unknown database provider name %s", credentials.DriverName)
 	}
-	m.driver = driver
+	m.driver = NewDriver(credentials, provider)
 	
 	wd, err := os.Getwd()
 	if err != nil {
@@ -105,7 +105,7 @@ func (m *Migrator) findUnappliedMigrations(direction Direction, steps uint) []*m
 		}
 		
 		// migration that should be run on specific db only
-		if len(parts) > 3 && parts[3] != m.driver.name() {
+		if len(parts) > 3 && parts[3] != m.driver.credentials.DriverName {
 			return nil
 		}
 		
