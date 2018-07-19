@@ -13,13 +13,13 @@ func init() {
 
 type sqliteProvider struct {}
 
-func (p *sqliteProvider) dsn(cr *Credentials) (string, error) {
-	if cr.DBName == "" {
+func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
+	if settings.DBName == "" {
 		return "", errDBNameNotProvided
 	}
 	
-	if filepath.IsAbs(cr.DBName) {
-		return cr.DBName, nil
+	if filepath.IsAbs(settings.DBName) {
+		return settings.DBName, nil
 	}
 	
 	dir, err := os.Getwd()
@@ -27,8 +27,8 @@ func (p *sqliteProvider) dsn(cr *Credentials) (string, error) {
 	    return "", errors.Wrap(err, "can't get working directory")
 	}
 	
-	dbPath := "./" + cr.DBName
-	for !fileExists(filepath.Join(dir, cr.DBName)) {
+	dbPath := "./" + settings.DBName
+	for !fileExists(filepath.Join(dir, settings.DBName)) {
 		if dir == "/" {
 			return "", errors.Wrap(err, "database file is not found")
 		}

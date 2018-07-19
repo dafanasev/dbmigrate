@@ -3,7 +3,6 @@ package migrate
 import (
 	"fmt"
 	"strings"
-	
 )
 
 func init() {
@@ -14,29 +13,29 @@ type postgresProvider struct {
 	defaultProvider
 }
 
-func (p *postgresProvider) dsn(cr *Credentials) (string, error) {
+func (p *postgresProvider) dsn(settings *Settings) (string, error) {
 	kvs := []string{}
 	
-	if cr.DBName == "" {
+	if settings.DBName == "" {
 		return "", errDBNameNotProvided
 	}
-	kvs = append(kvs, "dbname=" + cr.DBName)
+	kvs = append(kvs, "dbname=" + settings.DBName)
 	
-	if cr.User == "" {
+	if settings.User == "" {
 		return "", errUserNotProvided
 	}
-	kvs = append(kvs, "user=" +  cr.User)
+	kvs = append(kvs, "user=" +  settings.User)
 	
-	if cr.Passwd != "" {
-		kvs = append(kvs, "password=" + cr.Passwd)
+	if settings.Passwd != "" {
+		kvs = append(kvs, "password=" + settings.Passwd)
 	}
 	
-	if cr.Host != "" {
-		kvs = append(kvs, "host=" + cr.Host)
+	if settings.Host != "" {
+		kvs = append(kvs, "host=" + settings.Host)
 	}
 	
-	if cr.Port != "" {
-		kvs = append(kvs, "port=" + cr.Port)
+	if settings.Port != "" {
+		kvs = append(kvs, "port=" + settings.Port)
 	}
 	
 	return strings.Join(kvs, " "), nil

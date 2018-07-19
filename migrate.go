@@ -21,7 +21,7 @@ func (d Direction) String() string {
 	return s
 }
 
-type Credentials struct {
+type Settings struct {
 	DriverName      string
 	DBName          string
 	Host            string

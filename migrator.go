@@ -23,21 +23,21 @@ type Migrator struct {
 }
 
 // NewMigrator returns migrator instance
-func NewMigrator(credentials *Credentials) (*Migrator, error) {
-	if credentials.MigrationsDir == "" {
-		credentials.MigrationsDir = "migrations"
+func NewMigrator(settings *Settings) (*Migrator, error) {
+	if settings.MigrationsDir == "" {
+		settings.MigrationsDir = "migrations"
 	}
-	if credentials.MigrationsTable == "" {
-		credentials.MigrationsTable = "migrations"
+	if settings.MigrationsTable == "" {
+		settings.MigrationsTable = "migrations"
 	}
 	
-	m := &Migrator{migrationsDir: credentials.MigrationsDir, migrationsTable: credentials.MigrationsTable}
+	m := &Migrator{migrationsDir: settings.MigrationsDir, migrationsTable: settings.MigrationsTable}
 	
-	provider, ok := providers[credentials.DriverName]
+	provider, ok := providers[settings.DriverName]
 	if !ok {
-		return nil, errors.Errorf("unknown database provider name %s", credentials.DriverName)
+		return nil, errors.Errorf("unknown database provider name %s", settings.DriverName)
 	}
-	m.driver = newDriver(credentials, provider)
+	m.driver = newDriver(settings, provider)
 	
 	wd, err := os.Getwd()
 	if err != nil {
@@ -115,7 +115,7 @@ func (m *Migrator) findMigrationFiles(direction Direction) []*migration {
 		}
 		
 		// migration that should be run on specific db only
-		if len(parts) > 3 && parts[3] != m.driver.credentials.DriverName {
+		if len(parts) > 3 && parts[3] != m.driver.settings.DriverName {
 			return nil
 		}
 		

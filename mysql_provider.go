@@ -10,23 +10,23 @@ type mysqlProvider struct {
 	defaultProvider
 }
 
-func (p *mysqlProvider) dsn(cr *Credentials) (string, error) {
-	if cr.DBName == "" {
+func (p *mysqlProvider) dsn(settings *Settings) (string, error) {
+	if settings.DBName == "" {
 		return "", errDBNameNotProvided
 	}
 	
-	if cr.User == "" {
+	if settings.User == "" {
 		return "", errUserNotProvided
 	}
 	
-	host := cr.Host
+	host := settings.Host
 	if host == "" {
 		host = "127.0.0.1"
 	}
-	port := cr.Port
+	port := settings.Port
 	if port == "" {
 		port = "3306"
 	}
 	
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", cr.User, cr.Passwd, host, port, cr.DBName), nil
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", settings.User, settings.Passwd, host, port, settings.DBName), nil
 }
