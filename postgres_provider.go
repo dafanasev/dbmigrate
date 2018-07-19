@@ -46,7 +46,7 @@ func (p *postgresProvider) setPlaceholders(s string) string {
 	counter := 0
 	for strings.Index(s, "?") != -1 {
 		counter++
-		s = strings.Replace("s", "?", fmt.Sprintf("$%d", counter), 1)
+		s = strings.Replace(s, "?", fmt.Sprintf("$%d", counter), 1)
 	}
 	return s
 }

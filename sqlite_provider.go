@@ -1,6 +1,11 @@
 package migrate
 
-import "path/filepath"
+import (
+	"os"
+	"path/filepath"
+	
+	"github.com/pkg/errors"
+)
 
 func init() {
 	providers["sqlite"] = &sqliteProvider{}
@@ -17,7 +22,21 @@ func (p *sqliteProvider) dsn(cr *Credentials) (string, error) {
 		return cr.DBName, nil
 	}
 	
-	return "./" + cr.DBName, nil
+	dir, err := os.Getwd()
+	if err != nil {
+	    return "", errors.Wrap(err, "can't get working directory")
+	}
+	
+	dbPath := "./" + cr.DBName
+	for !fileExists(filepath.Join(dir, cr.DBName)) {
+		if dir == "/" {
+			return "", errors.Wrap(err, "database file is not found")
+		}
+		dir = filepath.Dir(dir)
+		dbPath = "../" + dbPath
+	}
+	
+	return dbPath, nil
 }
 
 func (p *sqliteProvider) hasTableQuery() string {

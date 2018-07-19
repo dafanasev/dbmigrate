@@ -15,6 +15,14 @@ func dirExists(fpath string) bool {
 	return true
 }
 
+func fileExists(fpath string) bool {
+	stats, err := os.Stat(fpath)
+	if os.IsNotExist(err) || stats.IsDir() {
+		return false
+	}
+	return true
+}
+
 // isValidString checks whether the given string is the one of passed options,
 // case insensible
 func isValidString(s string, validOptions []string) bool {
