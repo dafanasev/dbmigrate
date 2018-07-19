@@ -23,7 +23,7 @@ type driver struct {
 	placeholdersProvider
 }
 
-func NewDriver(cr *Credentials, provider provider) *driver {
+func newDriver(cr *Credentials, provider provider) *driver {
 	d := &driver{
 		credentials: cr,
 		provider:    provider,
@@ -76,7 +76,7 @@ func (d *driver) hasTable() (bool, error) {
 	return true, nil
 }
 
-func (d *driver) createMigrationsVersions() error {
+func (d *driver) createMigrationsTable() error {
 	_, err := d.db.Exec(d.setPlaceholders("CREATE TABLE ? (version TIMESTAMP NOT NULL, PRIMARY KEY(version));"), d.credentials.MigrationsTable)
 	if err != nil {
 		return errors.Wrapf(err, "Can't create migrations table")
@@ -84,7 +84,7 @@ func (d *driver) createMigrationsVersions() error {
 	return nil
 }
 
-func (d *driver) lastMigrationVersion() (time.Time, error) {
+func (d *driver) lastMigrationTimestamp() (time.Time, error) {
 	var v time.Time
 	err := d.db.QueryRow(d.setPlaceholders("SELECT version FROM ? ORDER BY version DESC LIMIT 1"), d.credentials.MigrationsTable).Scan(&v)
 	if err != nil {
@@ -93,7 +93,7 @@ func (d *driver) lastMigrationVersion() (time.Time, error) {
 	return v, nil
 }
 
-func (d *driver) appliedMigrationsVersions() ([]time.Time, error) {
+func (d *driver) appliedMigrationsTimestamps() ([]time.Time, error) {
 	rows, err := d.db.Query(d.setPlaceholders("SELECT version FROM ? ORDER BY version ASC"), d.credentials.MigrationsTable)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
@@ -112,7 +112,7 @@ func (d *driver) appliedMigrationsVersions() ([]time.Time, error) {
 	return vs, nil
 }
 
-func (d *driver) insertMigrationVersion(version time.Time) error {
+func (d *driver) insertMigrationTimestamp(version time.Time) error {
 	_, err := d.db.Exec(d.setPlaceholders("INSERT INTO ? (migration) VALUES (?)"), d.credentials.MigrationsTable, version)
 	if err != nil {
 		return errors.Wrap(err, "can't insert migration version")
@@ -120,7 +120,7 @@ func (d *driver) insertMigrationVersion(version time.Time) error {
 	return nil
 }
 
-func (d *driver) deleteMigrationVersion(version time.Time) error {
+func (d *driver) deleteMigrationTimestamp(version time.Time) error {
 	_, err := d.db.Exec(d.setPlaceholders("DELETE FROM ? WHERE migration = ?"), d.credentials.MigrationsTable, version)
 	if err != nil {
 		return errors.Wrap(err, "can't delete migration version")

@@ -3,6 +3,7 @@ package migrate
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 	
@@ -36,7 +37,7 @@ func NewMigrator(credentials *Credentials) (*Migrator, error) {
 	if !ok {
 		return nil, errors.Errorf("unknown database provider name %s", credentials.DriverName)
 	}
-	m.driver = NewDriver(credentials, provider)
+	m.driver = newDriver(credentials, provider)
 	
 	wd, err := os.Getwd()
 	if err != nil {
@@ -68,7 +69,7 @@ func (m *Migrator) RunSteps(direction Direction, steps uint) {
 }
 
 func (m *Migrator) LastMigration() (time.Time, error) {
-	return m.driver.lastMigrationVersion()
+	return m.driver.lastMigrationTimestamp()
 }
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
@@ -84,8 +85,8 @@ func (m *Migrator) findProjectDir(dirPath string) (string, error) {
 	return m.findProjectDir(filepath.Dir(dirPath))
 }
 
-// findUnappliedMigrations finds all valid migrations in the migrations dir
-func (m *Migrator) findUnappliedMigrations(direction Direction, steps uint) []*migration {
+// findMigrationFiles finds all valid migrations in the migrations dir
+func (m *Migrator) findMigrationFiles(direction Direction) []*migration {
 	migrations := []*migration{}
 	migrationsDirPath := filepath.Join(m.projectDir, m.migrationsDir)
 	
@@ -122,5 +123,31 @@ func (m *Migrator) findUnappliedMigrations(direction Direction, steps uint) []*m
 		return nil
 	})
 	
+	sort.Sort(byTimestamp(migrations))
+	
 	return migrations
+}
+
+func (m *Migrator) findUnappliedMigrations(direction Direction, steps uint) ([]*migration, error) {
+	migrations := m.findMigrationFiles(direction)
+	appliedMigrationsTimestamps, err := m.driver.appliedMigrationsTimestamps()
+	if err != nil {
+	    return nil, err
+	}
+	
+	unappliedMigrations := []*migration{}
+	for _, m := range migrations {
+		found := false
+		for _, ts := range appliedMigrationsTimestamps {
+			if m.timestamp == ts {
+				found = true
+				break
+			}
+		}
+		if !found {
+			unappliedMigrations = append(unappliedMigrations, m)
+		}
+	}
+	
+	return unappliedMigrations, nil
 }
