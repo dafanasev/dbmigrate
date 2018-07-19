@@ -16,15 +16,15 @@ var (
 	errUserNotProvided   = errors.New("user is not provided")
 )
 
-type driver struct {
+type db struct {
 	settings *Settings
 	db       *sql.DB
 	provider
 	placeholdersProvider
 }
 
-func newDriver(settings *Settings, provider provider) *driver {
-	d := &driver{
+func newDB(settings *Settings, provider provider) *db {
+	d := &db{
 		settings: settings,
 		provider: provider,
 	}
@@ -34,7 +34,7 @@ func newDriver(settings *Settings, provider provider) *driver {
 	return d
 }
 
-func (d *driver) open() error {
+func (d *db) open() error {
 	dsn, err := d.provider.dsn(d.settings)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func (d *driver) open() error {
 	return nil
 }
 
-func (d *driver) close() error {
+func (d *db) close() error {
 	err := d.db.Close()
 	if err != nil {
 		return errors.Wrap(err, "Error shutting down migrator")
@@ -56,14 +56,14 @@ func (d *driver) close() error {
 	return nil
 }
 
-func (d *driver) setPlaceholders(s string) string {
+func (d *db) setPlaceholders(s string) string {
 	if d.placeholdersProvider == nil {
 		return s
 	}
 	return d.placeholdersProvider.setPlaceholders(s)
 }
 
-func (d *driver) hasTable() (bool, error) {
+func (d *db) hasTable() (bool, error) {
 	var table string
 	err := d.db.QueryRow(d.setPlaceholders(d.provider.hasTableQuery()), d.settings.MigrationsTable).Scan(&table)
 	if err == sql.ErrNoRows {
@@ -76,24 +76,24 @@ func (d *driver) hasTable() (bool, error) {
 	return true, nil
 }
 
-func (d *driver) createMigrationsTable() error {
+func (d *db) createMigrationsTable() error {
 	_, err := d.db.Exec(d.setPlaceholders("CREATE TABLE ? (version TIMESTAMP NOT NULL, PRIMARY KEY(version));"), d.settings.MigrationsTable)
 	if err != nil {
-		return errors.Wrapf(err, "Can't create migrations table")
+		return errors.Wrapf(err, "can't create migrations table")
 	}
 	return nil
 }
 
-func (d *driver) lastMigrationTimestamp() (time.Time, error) {
+func (d *db) lastMigrationTimestamp() (time.Time, error) {
 	var v time.Time
 	err := d.db.QueryRow(d.setPlaceholders("SELECT version FROM ? ORDER BY version DESC LIMIT 1"), d.settings.MigrationsTable).Scan(&v)
 	if err != nil {
-	    return time.Time{}, errors.Wrap(err,"can't get last migration version")
+	    return time.Time{}, errors.Wrap(err,"can't select last migration version from database")
 	}
 	return v, nil
 }
 
-func (d *driver) appliedMigrationsTimestamps() ([]time.Time, error) {
+func (d *db) appliedMigrationsTimestamps() ([]time.Time, error) {
 	rows, err := d.db.Query(d.setPlaceholders("SELECT version FROM ? ORDER BY version ASC"), d.settings.MigrationsTable)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
@@ -112,7 +112,7 @@ func (d *driver) appliedMigrationsTimestamps() ([]time.Time, error) {
 	return vs, nil
 }
 
-func (d *driver) insertMigrationTimestamp(version time.Time) error {
+func (d *db) insertMigrationTimestamp(version time.Time) error {
 	_, err := d.db.Exec(d.setPlaceholders("INSERT INTO ? (migration) VALUES (?)"), d.settings.MigrationsTable, version)
 	if err != nil {
 		return errors.Wrap(err, "can't insert migration version")
@@ -120,7 +120,7 @@ func (d *driver) insertMigrationTimestamp(version time.Time) error {
 	return nil
 }
 
-func (d *driver) deleteMigrationTimestamp(version time.Time) error {
+func (d *db) deleteMigrationTimestamp(version time.Time) error {
 	_, err := d.db.Exec(d.setPlaceholders("DELETE FROM ? WHERE migration = ?"), d.settings.MigrationsTable, version)
 	if err != nil {
 		return errors.Wrap(err, "can't delete migration version")

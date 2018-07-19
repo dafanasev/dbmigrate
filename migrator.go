@@ -19,7 +19,7 @@ type Migrator struct {
 	migrationsTable string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
-	driver *driver
+	db         *db
 }
 
 // NewMigrator returns migrator instance
@@ -37,11 +37,11 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 	if !ok {
 		return nil, errors.Errorf("unknown database provider name %s", settings.DriverName)
 	}
-	m.driver = newDriver(settings, provider)
+	m.db = newDB(settings, provider)
 	
 	wd, err := os.Getwd()
 	if err != nil {
-		return nil, errors.Wrap(err,"Can't get working directory")
+		return nil, errors.Wrap(err,"can't get working directory")
 	}
 	
 	m.projectDir, err = m.findProjectDir(wd)
@@ -54,27 +54,31 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 
 // Done frees resources acquired by migrator
 func (m *Migrator) Done() error {
-	return m.driver.close()
+	return m.db.close()
 }
 
-func (m *Migrator) Run(direction Direction) error {
+func (m *Migrator) Run(direction Direction) (int, error) {
 	return m.RunSteps(direction, allSteps)
 }
 
-func (m *Migrator) RunSteps(direction Direction, steps uint) error {
+func (m *Migrator) RunSteps(direction Direction, steps uint) (int, error) {
 	migrations, err := m.findUnappliedMigrations(direction, steps)
 	if err != nil {
-	    return errors.Wrap(err, "can't find unapplied migrations")
+		return 0, errors.Wrap(err, "can't find unapplied migrations")
 	}
 	
 	for _, migration := range migrations {
 		migration.run()
 	}
-	return nil
+	return len(migrations), nil
 }
 
-func (m *Migrator) LastMigration() (time.Time, error) {
-	return m.driver.lastMigrationTimestamp()
+func (m *Migrator) LastMigration() (string, error) {
+	t, err := m.db.lastMigrationTimestamp()
+	if err != nil {
+	    return "", errors.Wrap(err, "can't get last migration")
+	}
+	return t.Format(printTimestampFormat), nil
 }
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
@@ -108,7 +112,7 @@ func (m *Migrator) findMigrationFiles(direction Direction) []*migration {
 		
 		parts := strings.Split(info.Name(), ".")
 		
-		ts, err := time.Parse(timestampFormat, parts[0])
+		ts, err := time.Parse(timestampFromFileFormat, parts[0])
 		if err != nil {
 			return nil
 		}
@@ -120,7 +124,7 @@ func (m *Migrator) findMigrationFiles(direction Direction) []*migration {
 		}
 		
 		// migration that should be run on specific db only
-		if len(parts) > 3 && parts[3] != m.driver.settings.DriverName {
+		if len(parts) > 3 && parts[3] != m.db.settings.DriverName {
 			return nil
 		}
 		
@@ -135,7 +139,7 @@ func (m *Migrator) findMigrationFiles(direction Direction) []*migration {
 
 func (m *Migrator) findUnappliedMigrations(direction Direction, steps uint) ([]*migration, error) {
 	migrations := m.findMigrationFiles(direction)
-	appliedMigrationsTimestamps, err := m.driver.appliedMigrationsTimestamps()
+	appliedMigrationsTimestamps, err := m.db.appliedMigrationsTimestamps()
 	if err != nil {
 	    return nil, err
 	}
