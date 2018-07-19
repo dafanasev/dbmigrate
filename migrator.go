@@ -57,15 +57,20 @@ func (m *Migrator) Done() error {
 	return m.driver.close()
 }
 
-func (m *Migrator) Run(direction Direction) {
-	m.RunSteps(direction, allSteps)
+func (m *Migrator) Run(direction Direction) error {
+	return m.RunSteps(direction, allSteps)
 }
 
-func (m *Migrator) RunSteps(direction Direction, steps uint) {
-	migrations := m.findUnappliedMigrations(direction, steps)
+func (m *Migrator) RunSteps(direction Direction, steps uint) error {
+	migrations, err := m.findUnappliedMigrations(direction, steps)
+	if err != nil {
+	    return errors.Wrap(err, "can't find unapplied migrations")
+	}
+	
 	for _, migration := range migrations {
 		migration.run()
 	}
+	return nil
 }
 
 func (m *Migrator) LastMigration() (time.Time, error) {
