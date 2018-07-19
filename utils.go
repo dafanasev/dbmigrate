@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-// dirExists checks if directory at path is exist,
+// isDirExists checks if directory at path is exist,
 // the path should be the absolute one
-func dirExists(fpath string) bool {
+func isDirExists(fpath string) bool {
 	stats, err := os.Stat(fpath)
 	if os.IsNotExist(err) || !stats.IsDir() {
 		return false
@@ -15,7 +15,7 @@ func dirExists(fpath string) bool {
 	return true
 }
 
-func fileExists(fpath string) bool {
+func isFileExists(fpath string) bool {
 	stats, err := os.Stat(fpath)
 	if os.IsNotExist(err) || stats.IsDir() {
 		return false

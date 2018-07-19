@@ -19,7 +19,7 @@ type Migrator struct {
 	migrationsTable string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
-	db         *db
+	dbWrapper  *dbWrapper
 }
 
 // NewMigrator returns migrator instance
@@ -37,7 +37,7 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 	if !ok {
 		return nil, errors.Errorf("unknown database provider name %s", settings.DriverName)
 	}
-	m.db = newDB(settings, provider)
+	m.dbWrapper = newDBWrapper(settings, provider)
 	
 	wd, err := os.Getwd()
 	if err != nil {
@@ -54,7 +54,11 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 
 // Done frees resources acquired by migrator
 func (m *Migrator) Done() error {
-	return m.db.close()
+	err := m.dbWrapper.close()
+	if err != nil {
+	    return errors.Wrap(err,"can't close migrator ")
+	}
+	return nil
 }
 
 func (m *Migrator) Run(direction Direction) (int, error) {
@@ -74,7 +78,7 @@ func (m *Migrator) RunSteps(direction Direction, steps uint) (int, error) {
 }
 
 func (m *Migrator) LastMigration() (string, error) {
-	t, err := m.db.lastMigrationTimestamp()
+	t, err := m.dbWrapper.lastMigrationTimestamp()
 	if err != nil {
 	    return "", errors.Wrap(err, "can't get last migration")
 	}
@@ -83,7 +87,7 @@ func (m *Migrator) LastMigration() (string, error) {
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
 func (m *Migrator) findProjectDir(dirPath string) (string, error) {
-	if dirExists(filepath.Join(dirPath, m.migrationsDir)) {
+	if isDirExists(filepath.Join(dirPath, m.migrationsDir)) {
 		return dirPath, nil
 	}
 	
@@ -123,8 +127,8 @@ func (m *Migrator) findMigrationFiles(direction Direction) []*migration {
 			return nil
 		}
 		
-		// migration that should be run on specific db only
-		if len(parts) > 3 && parts[3] != m.db.settings.DriverName {
+		// migration that should be run on specific dbWrapper only
+		if len(parts) > 3 && parts[3] != m.dbWrapper.settings.DriverName {
 			return nil
 		}
 		
@@ -139,7 +143,7 @@ func (m *Migrator) findMigrationFiles(direction Direction) []*migration {
 
 func (m *Migrator) findUnappliedMigrations(direction Direction, steps uint) ([]*migration, error) {
 	migrations := m.findMigrationFiles(direction)
-	appliedMigrationsTimestamps, err := m.db.appliedMigrationsTimestamps()
+	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps()
 	if err != nil {
 	    return nil, err
 	}

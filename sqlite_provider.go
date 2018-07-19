@@ -28,7 +28,7 @@ func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
 	}
 	
 	dbPath := "./" + settings.DBName
-	for !fileExists(filepath.Join(dir, settings.DBName)) {
+	for !isFileExists(filepath.Join(dir, settings.DBName)) {
 		if dir == "/" {
 			return "", errors.Wrap(err, "database file is not found")
 		}
