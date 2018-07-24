@@ -10,6 +10,10 @@ type mysqlProvider struct {
 	defaultProvider
 }
 
+func (p *mysqlProvider) driverName() string {
+	return "mysql"
+}
+
 func (p *mysqlProvider) dsn(settings *Settings) (string, error) {
 	if settings.DBName == "" {
 		return "", errDBNameNotProvided

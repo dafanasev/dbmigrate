@@ -2,6 +2,8 @@ package migrate
 
 import (
 	"database/sql"
+	"log"
+	"strings"
 	"time"
 	
 	"github.com/pkg/errors"
@@ -40,7 +42,7 @@ func (w *dbWrapper) open() error {
 		return err
 	}
 	
-	w.db, err = sql.Open(w.settings.DriverName, dsn)
+	w.db, err = sql.Open(w.provider.driverName(), dsn)
 	if err != nil {
 		return errors.Wrap(err, "can't open database")
 	}
@@ -128,10 +130,32 @@ func (w *dbWrapper) deleteMigration(version time.Time) error {
 	return nil
 }
 
-func (w *dbWrapper) execMigrationQuery(query string) error {
-	_, err := w.db.Exec(query)
+func (w *dbWrapper) execQuery(query string) error {
+	// using transactions, although only postgres supports DDL ones
+	tx, err := w.db.Begin()
 	if err != nil {
-	    return errors.Wrap(err, "can't execute migration query")
+		log.Fatal(errors.Wrap(err, "can't execute migration query, can't begin transaction"))
 	}
+	
+	// split queries, because mysql driver can't exec multiple queries at once
+	queries := strings.Split(query, ";")
+	if len(queries) > 0 {
+		for _, q := range queries {
+			q := strings.TrimSpace(q)
+			if q != "" {
+				_, err = tx.Exec(q + ";")
+				if err != nil {
+					tx.Rollback()
+					return errors.Wrapf(err, "can't execute query %s", q)
+				}
+			}
+		}
+	}
+	
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "can't commit transaction"))
+	}
+	
 	return nil
 }

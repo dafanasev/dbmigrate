@@ -13,6 +13,10 @@ func init() {
 
 type sqliteProvider struct {}
 
+func (p *sqliteProvider) driverName() string {
+	return "sqlite3"
+}
+
 func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
 	if settings.DBName == "" {
 		return "", errDBNameNotProvided

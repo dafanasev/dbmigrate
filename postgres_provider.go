@@ -13,6 +13,10 @@ type postgresProvider struct {
 	defaultProvider
 }
 
+func (p *postgresProvider) driverName() string {
+	return "postgres"
+}
+
 func (p *postgresProvider) dsn(settings *Settings) (string, error) {
 	kvs := []string{}
 	
