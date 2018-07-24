@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	errDBNameNotProvided = errors.New("dbWrapper name is not provided")
+	errDBNameNotProvided = errors.New("database name name is not provided")
 	errUserNotProvided   = errors.New("user is not provided")
 )
 
@@ -51,7 +51,7 @@ func (w *dbWrapper) open() error {
 func (w *dbWrapper) close() error {
 	err := w.db.Close()
 	if err != nil {
-		return errors.Wrap(err, "Error shutting down migrator")
+		return errors.Wrap(err, "can't close db")
 	}
 	return nil
 }
@@ -63,7 +63,7 @@ func (w *dbWrapper) setPlaceholders(s string) string {
 	return w.placeholdersProvider.setPlaceholders(s)
 }
 
-func (w *dbWrapper) hasTable() (bool, error) {
+func (w *dbWrapper) hasMigrationsTable() (bool, error) {
 	var table string
 	err := w.db.QueryRow(w.setPlaceholders(w.provider.hasTableQuery()), w.settings.MigrationsTable).Scan(&table)
 	if err == sql.ErrNoRows {
@@ -79,22 +79,22 @@ func (w *dbWrapper) hasTable() (bool, error) {
 func (w *dbWrapper) createMigrationsTable() error {
 	_, err := w.db.Exec(w.setPlaceholders("CREATE TABLE ? (version TIMESTAMP NOT NULL, PRIMARY KEY(version));"), w.settings.MigrationsTable)
 	if err != nil {
-		return errors.Wrapf(err, "can't create migrations table")
+		return errors.Wrap(err, "can't create migrations table")
 	}
 	return nil
 }
 
-func (w *dbWrapper) lastMigrationTimestamp() (time.Time, error) {
-	var v time.Time
-	err := w.db.QueryRow(w.setPlaceholders("SELECT version FROM ? ORDER BY version DESC LIMIT 1"), w.settings.MigrationsTable).Scan(&v)
+func (w *dbWrapper) lastMigrationData() (time.Time, error) {
+	var version time.Time
+	err := w.db.QueryRow(w.setPlaceholders("SELECT version, FROM ? ORDER BY version DESC LIMIT 1"), w.settings.MigrationsTable).Scan(&version)
 	if err != nil {
-	    return time.Time{}, errors.Wrap(err,"can't select last migration version from database")
+	    return time.Time{}, errors.Wrap(err,"can't select last Migration version from database")
 	}
-	return v, nil
+	return version, nil
 }
 
-func (w *dbWrapper) appliedMigrationsTimestamps() ([]time.Time, error) {
-	rows, err := w.db.Query(w.setPlaceholders("SELECT version FROM ? ORDER BY version ASC"), w.settings.MigrationsTable)
+func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, error) {
+	rows, err := w.db.Query(w.setPlaceholders("SELECT version FROM ? ORDER BY version ?"), w.settings.MigrationsTable, order)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
 	}
@@ -112,18 +112,26 @@ func (w *dbWrapper) appliedMigrationsTimestamps() ([]time.Time, error) {
 	return vs, nil
 }
 
-func (w *dbWrapper) insertMigrationTimestamp(version time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders("INSERT INTO ? (migration) VALUES (?)"), w.settings.MigrationsTable, version)
+func (w *dbWrapper) insertMigration(version time.Time) error {
+	_, err := w.db.Exec(w.setPlaceholders("INSERT INTO ? (version) VALUES (?)"), w.settings.MigrationsTable, version)
 	if err != nil {
-		return errors.Wrap(err, "can't insert migration version")
+		return errors.Wrap(err, "can't insert migration")
 	}
 	return nil
 }
 
-func (w *dbWrapper) deleteMigrationTimestamp(version time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders("DELETE FROM ? WHERE migration = ?"), w.settings.MigrationsTable, version)
+func (w *dbWrapper) deleteMigration(version time.Time) error {
+	_, err := w.db.Exec(w.setPlaceholders("DELETE FROM ? WHERE version = ?"), w.settings.MigrationsTable, version)
 	if err != nil {
-		return errors.Wrap(err, "can't delete migration version")
+		return errors.Wrap(err, "can't delete migration")
+	}
+	return nil
+}
+
+func (w *dbWrapper) execMigrationQuery(query string) error {
+	_, err := w.db.Exec(query)
+	if err != nil {
+	    return errors.Wrap(err, "can't execute migration query")
 	}
 	return nil
 }

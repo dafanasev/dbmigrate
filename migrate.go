@@ -18,17 +18,13 @@ type Direction int
 
 const (
 	directionError = Direction(iota)
-	DirectionUp
-	DirectionDown
+	directionUp
+	directionDown
 )
 
 func (d Direction) String() string {
-	var s string
-	switch d {
-	case DirectionUp:
-		s = "up"
-	case DirectionDown:
-		s = "down"
+	if d == directionUp {
+		return "up"
 	}
-	return s
+	return "down"
 }

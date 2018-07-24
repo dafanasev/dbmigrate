@@ -27,13 +27,13 @@ func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
 	    return "", errors.Wrap(err, "can't get working directory")
 	}
 	
-	dbPath := "./" + settings.DBName
+	dbPath := filepath.FromSlash("./") + settings.DBName
 	for !isFileExists(filepath.Join(dir, settings.DBName)) {
-		if dir == "/" {
+		if isRootDir(dir) {
 			return "", errors.Wrap(err, "database file is not found")
 		}
 		dir = filepath.Dir(dir)
-		dbPath = "../" + dbPath
+		dbPath = filepath.FromSlash("../") + dbPath
 	}
 	
 	return dbPath, nil

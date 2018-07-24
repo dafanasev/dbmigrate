@@ -2,13 +2,16 @@ package migrate
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
+	
+	"github.com/pkg/errors"
 )
 
 // isDirExists checks if directory at path is exist,
 // the path should be the absolute one
-func isDirExists(fpath string) bool {
-	stats, err := os.Stat(fpath)
+func isDirExists(dirpath string) bool {
+	stats, err := os.Stat(dirpath)
 	if os.IsNotExist(err) || !stats.IsDir() {
 		return false
 	}
@@ -37,17 +40,20 @@ func isValidString(s string, validOptions []string) bool {
 // DirectionFromString tries to build Direction from string,
 // checking for valid ones
 func DirectionFromString(s string) (Direction, error) {
-	s = strings.ToLower(s)
-	if !isValidString(s, []string{"up", "down"}) {
-		return directionError, nil
-	}
-	
-	var d Direction
-	switch s {
+	switch strings.ToLower(s) {
 	case "up":
-		d = DirectionUp
+		return directionUp, nil
 	case "down":
-		d = DirectionDown
+		return directionDown, nil
+	default:
+		return directionError, errors.Errorf("can't parse direction from string %s", s)
 	}
-	return d, nil
+}
+
+func isRootDir(dir string) bool {
+	// second check is for windows
+	if dir == "/" || dir == strings.Split(dir, string(filepath.Separator))[0] {
+		return true
+	}
+	return false
 }
