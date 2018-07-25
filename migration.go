@@ -29,22 +29,21 @@ func (m *Migration) run() error {
 	return nil
 }
 
-func (m *Migration) buildPath(dir string) string {
+func (m *Migration) fileName() string {
 	parts := []string{m.Timestamp.Format(timestampFromFileFormat), m.Name}
 	if m.driver != "" {
 		parts = append(parts, m.driver)
 	}
 	parts = append(parts, m.direction.String(), "sql")
 	
-	filename := strings.Join(parts, ".")
-	return filepath.FromSlash(fmt.Sprintf("%s/%s", dir, filename))
+	return strings.Join(parts, ".")
 }
 
-func (m *Migration) FullName() string {
+func (m *Migration) HumanName() string {
 	return fmt.Sprintf("%s %s", m.Timestamp, m.Name)
 }
 
-func migrationFromFilename(fname string) (*Migration, error) {
+func migrationFromFileName(fname string) (*Migration, error) {
 	errMsg := fmt.Sprintf("can't parse migration from filename %s", fname)
 	
 	if strings.ToLower(filepath.Ext(fname)) != "sql" {

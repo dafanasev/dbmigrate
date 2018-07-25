@@ -2,6 +2,7 @@ package migrate
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -71,22 +72,22 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 		return 0, errors.Wrap(err, "can't find unapplied migrations")
 	}
 	
-	if steps == 0 {
+	if steps == allSteps || steps > len(migrations) {
 		steps = len(migrations)
 	}
 	
 	// TODO: think about prints
 	for i, migration := range migrations[:steps] {
-		err = migration.run()
+		err = m.run(migration)
 		if err != nil {
-		    return i, errors.Wrapf(err, "can't execute migration %s", migration.FullName())
+		    return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
 		}
 	}
 	return len(migrations), nil
 }
 
 func (m *Migrator) Down() (int, error) {
-	return m.UpSteps(allSteps)
+	return m.UpSteps(1)
 }
 
 func (m *Migrator) DownSteps(steps int) (int, error) {
@@ -95,8 +96,8 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 		return 0, errors.Wrap(err, "can't rollback")
 	}
 	
-	if steps == 0 {
-		steps = 1
+	if steps > len(appliedMigrationsTimestamps) {
+		steps = len(appliedMigrationsTimestamps)
 	}
 	
 	migrations := []*Migration{}
@@ -108,12 +109,28 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 	}
 	
 	for i, migration := range migrations {
-		err = migration.run()
+		err = m.run(migration)
 		if err != nil {
-			return i, errors.Wrapf(err, "can't execute migration %s", migration.FullName())
+			return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
 		}
 	}
 	return len(migrations), nil
+}
+
+func (m *Migrator) run(migration *Migration) error {
+	fpath := filepath.FromSlash(fmt.Sprintf("%s/%s", m.migrationsDir, migration.fileName()))
+	
+	query, err := ioutil.ReadFile(fpath)
+	if err != nil {
+	    return errors.Wrapf(err, "can't read file for migration %s", migration.HumanName())
+	}
+	
+	err = m.dbWrapper.execQuery(string(query))
+	if err != nil {
+		return errors.Wrapf(err, "can't exec query for migration %s", migration.HumanName())
+	}
+	
+	return nil
 }
 
 func (m *Migrator) LastMigration() (*Migration, error) {
@@ -154,7 +171,7 @@ func (m *Migrator) readMigrationsFromFiles(direction Direction) []*Migration {
 			return nil
 		}
 		
-		migration, err := migrationFromFilename(info.Name())
+		migration, err := migrationFromFileName(info.Name())
 		if err != nil {
 		    return nil
 		}
@@ -218,7 +235,7 @@ func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, 
 		return nil, errors.Errorf("got %d %v migration with timestamp %s, should be only one", len(files), direction, ts.Format(timestampFromFileFormat))
 	}
 	
-	migration, err := migrationFromFilename(filepath.Base(files[0]))
+	migration, err := migrationFromFileName(filepath.Base(files[0]))
 	if err != nil {
 	    return nil, err
 	}
