@@ -1,15 +1,39 @@
 package migrate
 
 import (
+	"os"
 	"testing"
-	"github.com/stretchr/testify/assert"
-	"strings"
+	
+	"github.com/magiconair/properties/assert"
 )
 
-func Test_filenameSplit(t *testing.T)  {
-	s := "20180711084831.create_users.postgres"
-	assert.Equal(t, []string{"20180711084831", "create_users", "postgres"}, strings.Split(s, "."))
+func TestMain(m *testing.M) {
+	createTempStuff()
+	code := m.Run()
+	removeTempStuff()
+	cleanUp()
+	os.Exit(code)
+}
+
+func createTempStuff() {
+	os.MkdirAll("test/dir", os.ModeDir | os.ModePerm)
+	os.Create("test/file")
+	os.MkdirAll("migrations", os.ModeDir | os.ModePerm)
+}
+
+func removeTempStuff() {
+	os.RemoveAll("test")
+	os.RemoveAll("migrations")
+}
+
+func cleanUp() {
+	os.Remove("migrate_test")
+}
+
+func Test_Direction_String(t *testing.T) {
+	d := directionUp
+	assert.Equal(t, "up", d.String())
 	
-	s = "20180711084831.create_users"
-	assert.Equal(t, []string{"20180711084831", "create_users"}, strings.Split(s, "."))
+	d = directionDown
+	assert.Equal(t, "down", d.String())
 }

@@ -18,7 +18,7 @@ func (p *postgresProvider) driverName() string {
 }
 
 func (p *postgresProvider) dsn(settings *Settings) (string, error) {
-	kvs := []string{}
+	var kvs []string
 	
 	if settings.DBName == "" {
 		return "", errDBNameNotProvided
@@ -38,9 +38,11 @@ func (p *postgresProvider) dsn(settings *Settings) (string, error) {
 		kvs = append(kvs, "host=" + settings.Host)
 	}
 	
-	if settings.Port != "" {
-		kvs = append(kvs, "port=" + settings.Port)
+	if settings.Port != 0 {
+		kvs = append(kvs, fmt.Sprintf("port=%d", settings.Port))
 	}
+	
+	kvs = append(kvs, "sslmode=disable")
 	
 	return strings.Join(kvs, " "), nil
 }

@@ -12,10 +12,10 @@ import (
 // Migration holds info about Migration
 type Migration struct {
 	// Timestamp when the migration was created
-	Timestamp time.Time
-	Name      string
-	direction Direction
-	driver    string
+	Timestamp  time.Time
+	Name       string
+	direction  Direction
+	driverName string
 }
 
 type byTimestamp []*Migration
@@ -24,35 +24,30 @@ func (bts byTimestamp) Len() int           { return len(bts) }
 func (bts byTimestamp) Swap(i, j int)      { bts[i], bts[j] = bts[j], bts[i] }
 func (bts byTimestamp) Less(i, j int) bool { return bts[i].Timestamp.Unix() < bts[j].Timestamp.Unix() }
 
-// run executes single migration
-func (m *Migration) run() error {
-	return nil
-}
-
 func (m *Migration) fileName() string {
-	parts := []string{m.Timestamp.Format(timestampFromFileFormat), m.Name}
-	if m.driver != "" {
-		parts = append(parts, m.driver)
+	parts := []string{m.Timestamp.Format(timestampFormat), m.Name, m.direction.String()}
+	if m.driverName != "" {
+		parts = append(parts, m.driverName)
 	}
-	parts = append(parts, m.direction.String(), "sql")
+	parts = append(parts, "sql")
 	
 	return strings.Join(parts, ".")
 }
 
 func (m *Migration) HumanName() string {
-	return fmt.Sprintf("%s %s", m.Timestamp, m.Name)
+	return fmt.Sprintf("%s %s", m.Timestamp.Format(printTimestampFormat), m.Name)
 }
 
 func migrationFromFileName(fname string) (*Migration, error) {
 	errMsg := fmt.Sprintf("can't parse migration from filename %s", fname)
 	
-	if strings.ToLower(filepath.Ext(fname)) != "sql" {
-		return nil, errors.Errorf("%s, file is not sql", errMsg)
+	if strings.ToLower(filepath.Ext(fname)) != ".sql" {
+		return nil, errors.Errorf("%s, file name is not sql", errMsg)
 	}
 	
 	parts := strings.Split(fname, ".")
 	
-	ts, err := time.Parse(timestampFromFileFormat, parts[0])
+	ts, err := time.Parse(timestampFormat, parts[0])
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}
@@ -66,12 +61,13 @@ func migrationFromFileName(fname string) (*Migration, error) {
 	
 	// Migration that should be run on specific dbWrapper only
 	var driver string
-	if len(parts) > 3 {
-		if _, ok := providers[parts[3]]; !ok {
-			return nil, errors.Errorf("%s, drives is not known", errMsg)
+	// 4 for .sql extension
+	if len(parts) > 4 {
+		if _, ok := providers[strings.ToLower(parts[3])]; !ok {
+			return nil, errors.Errorf("%s, driverName is not known", errMsg)
 		}
-		driver = parts[3]
+		driver = strings.ToLower(parts[3])
 	}
 	
-	return &Migration{Timestamp: ts, Name: name, direction: direction, driver: driver}, nil
+	return &Migration{Timestamp: ts, Name: name, direction: direction, driverName: driver}, nil
 }

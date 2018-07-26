@@ -2,6 +2,7 @@ package migrate
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -75,12 +76,11 @@ func (w *dbWrapper) hasMigrationsTable() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	
 	return true, nil
 }
 
 func (w *dbWrapper) createMigrationsTable() error {
-	_, err := w.db.Exec(w.setPlaceholders("CREATE TABLE ? (version TIMESTAMP NOT NULL, PRIMARY KEY(version));"), w.settings.MigrationsTable)
+	_, err := w.db.Exec(fmt.Sprintf("CREATE TABLE %s (version VARCHAR(14) NOT NULL, PRIMARY KEY(version));", w.settings.MigrationsTable))
 	if err != nil {
 		return errors.Wrap(err, "can't create migrations table")
 	}
@@ -88,43 +88,48 @@ func (w *dbWrapper) createMigrationsTable() error {
 }
 
 func (w *dbWrapper) lastMigrationData() (time.Time, error) {
-	var version time.Time
-	err := w.db.QueryRow(w.setPlaceholders("SELECT version, FROM ? ORDER BY version DESC LIMIT 1"), w.settings.MigrationsTable).Scan(&version)
-	if err != nil {
-	    return time.Time{}, errors.Wrap(err,"can't select last Migration version from database")
+	var version string
+	err := w.db.QueryRow(fmt.Sprintf("SELECT version FROM %s ORDER BY version DESC LIMIT 1", w.settings.MigrationsTable)).Scan(&version)
+	if err == sql.ErrNoRows {
+		return time.Time{}, nil
 	}
-	return version, nil
+	if err != nil {
+	    return time.Time{}, errors.Wrap(err, "can't select last migration version from database")
+	}
+	ts, _ := time.Parse(timestampFormat, version)
+	return ts, nil
 }
 
 func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, error) {
-	rows, err := w.db.Query(w.setPlaceholders("SELECT version FROM ? ORDER BY version ?"), w.settings.MigrationsTable, order)
+	rows, err := w.db.Query(fmt.Sprintf("SELECT version FROM %s ORDER BY version %s", w.settings.MigrationsTable, order))
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
 	}
 	defer rows.Close()
 	
-	vs := []time.Time{}
-	var v time.Time
+	var tss []time.Time
+	var v string
 	for rows.Next() {
 		err = rows.Scan(&v)
 		if err != nil {
 			return nil, errors.Wrap(err, "can't scan migration version row")
 		}
-		vs = append(vs, v)
+		ts, _ := time.Parse(timestampFormat, v)
+		tss = append(tss, ts)
 	}
-	return vs, nil
+	return tss, nil
 }
 
-func (w *dbWrapper) insertMigration(version time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders("INSERT INTO ? (version) VALUES (?)"), w.settings.MigrationsTable, version)
+func (w *dbWrapper) insertMigrationTimestamp(ts time.Time) error {
+	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", w.settings.MigrationsTable)), ts.Format(timestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't insert migration")
 	}
 	return nil
 }
 
-func (w *dbWrapper) deleteMigration(version time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders("DELETE FROM ? WHERE version = ?"), w.settings.MigrationsTable, version)
+func (w *dbWrapper) deleteMigrationTimestamp(ts time.Time) error {
+	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("DELETE FROM %s WHERE version = ?", w.settings.MigrationsTable)), ts.Format(timestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't delete migration")
 	}
@@ -132,30 +137,32 @@ func (w *dbWrapper) deleteMigration(version time.Time) error {
 }
 
 func (w *dbWrapper) execQuery(query string) error {
-	// using transactions, although only postgres supports DDL ones
+	if strings.TrimSpace(query) == "" {
+		return errors.New("empty query")
+	}
+	
+	// using transactions, although only mysql doesn't supports DDL ones
 	tx, err := w.db.Begin()
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "can't execute migration query, can't begin transaction"))
+		log.Fatal(errors.Wrap(err, "can't begin transaction"))
 	}
 	
 	// split queries, because mysql driver can't exec multiple queries at once
 	queries := strings.Split(query, ";")
-	if len(queries) > 0 {
-		for _, q := range queries {
-			q := strings.TrimSpace(q)
-			if q != "" {
-				_, err = tx.Exec(q + ";")
-				if err != nil {
-					tx.Rollback()
-					return errors.Wrapf(err, "can't execute query %s", q)
-				}
+	for _, q := range queries {
+		q := strings.TrimSpace(q)
+		if q != "" {
+			_, err = tx.Exec(q + ";")
+			if err != nil {
+				tx.Rollback()
+				return errors.Wrapf(err, "can't execute query %s", q)
 			}
 		}
 	}
 	
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "can't commit transaction"))
+		return errors.Wrap(err, "can't commit transaction")
 	}
 	
 	return nil

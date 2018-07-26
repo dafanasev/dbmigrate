@@ -20,7 +20,7 @@ type Migrator struct {
 	migrationsTable string
 	// project dir (the one that has migrationsDir as straight subdir)
 	projectDir string
-	dbWrapper  *dbWrapper
+	dbWrapper *dbWrapper
 }
 
 // NewMigrator returns migrator instance
@@ -42,7 +42,7 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 	
 	wd, err := os.Getwd()
 	if err != nil {
-		return nil, errors.Wrap(err,"can't get working directory")
+		return nil, errors.Wrap(err, "can't get working directory")
 	}
 	
 	m.projectDir, err = m.findProjectDir(wd)
@@ -53,11 +53,11 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 	return m, nil
 }
 
-// Done frees resources acquired by migrator
-func (m *Migrator) Done() error {
+// Close frees resources acquired by migrator
+func (m *Migrator) Close() error {
 	err := m.dbWrapper.close()
 	if err != nil {
-	    return errors.Wrap(err,"error shutting down migrator")
+	    return errors.Wrap(err, "error shutting down migrator")
 	}
 	return nil
 }
@@ -100,7 +100,7 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 		steps = len(appliedMigrationsTimestamps)
 	}
 	
-	migrations := []*Migration{}
+	var migrations []*Migration
 	for _, ts := range appliedMigrationsTimestamps[:steps] {
 		migration, err := m.getMigration(ts, directionDown)
 		if err == nil {
@@ -140,7 +140,7 @@ func (m *Migrator) LastMigration() (*Migration, error) {
 	}
 	migration, err := m.getMigration(ts, directionUp)
 	if err != nil {
-	    return nil, errors.Wrapf(err, "can't get last migration", ts.Format(timestampFromFileFormat))
+	    return nil, errors.Wrapf(err, "can't get last migration", ts.Format(timestampFormat))
 	}
 	return migration, nil
 }
@@ -160,7 +160,7 @@ func (m *Migrator) findProjectDir(dir string) (string, error) {
 
 // readMigrationsFromFiles finds all valid migrations in the migrations dir
 func (m *Migrator) readMigrationsFromFiles(direction Direction) []*Migration {
-	migrations := []*Migration{}
+	var migrations []*Migration
 	migrationsDirPath := filepath.Join(m.projectDir, m.migrationsDir)
 	
 	filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
@@ -181,7 +181,7 @@ func (m *Migrator) readMigrationsFromFiles(direction Direction) []*Migration {
 		}
 		
 		// Migration that should be run on specific dbWrapper only
-		if migration.driver != "" && migration.driver != m.dbWrapper.settings.DriverName {
+		if migration.driverName != "" && migration.driverName != m.dbWrapper.settings.DriverName {
 			return nil
 		}
 		
@@ -201,7 +201,7 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 	    return nil, err
 	}
 	
-	unappliedMigrations := []*Migration{}
+	var unappliedMigrations []*Migration
 	for _, m := range migrations {
 		found := false
 		for _, ts := range appliedMigrationsTimestamps {
@@ -219,7 +219,7 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 }
 
 func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, error) {
-	timestampStr :=  ts.Format(timestampFromFileFormat)
+	timestampStr :=  ts.Format(timestampFormat)
 	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", m.migrationsDir, timestampStr, direction))
 	files, _ := filepath.Glob(pattern)
 	
@@ -229,10 +229,10 @@ func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, 
 	}
 	
 	if len(files) == 0 {
-		return nil, errors.Errorf("can't get %v migration with timestamp %s", direction, ts.Format(timestampFromFileFormat))
+		return nil, errors.Errorf("can't get %v migration with timestamp %s", direction, ts.Format(timestampFormat))
 	}
 	if len(files) > 1 {
-		return nil, errors.Errorf("got %d %v migration with timestamp %s, should be only one", len(files), direction, ts.Format(timestampFromFileFormat))
+		return nil, errors.Errorf("got %d %v migration with timestamp %s, should be only one", len(files), direction, ts.Format(timestampFormat))
 	}
 	
 	migration, err := migrationFromFileName(filepath.Base(files[0]))

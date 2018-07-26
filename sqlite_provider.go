@@ -30,11 +30,10 @@ func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
 	if err != nil {
 	    return "", errors.Wrap(err, "can't get working directory")
 	}
-	
-	dbPath := filepath.FromSlash("./") + settings.DBName
-	for !isFileExists(filepath.Join(dir, settings.DBName)) {
+	dbPath := settings.DBName
+	for !isDirExists(filepath.Join(dir, settings.MigrationsDir)) {
 		if isRootDir(dir) {
-			return "", errors.Wrap(err, "database file is not found")
+			return "", errors.New("project root is not found")
 		}
 		dir = filepath.Dir(dir)
 		dbPath = filepath.FromSlash("../") + dbPath

@@ -28,9 +28,9 @@ func (p *mysqlProvider) dsn(settings *Settings) (string, error) {
 		host = "127.0.0.1"
 	}
 	port := settings.Port
-	if port == "" {
-		port = "3306"
+	if port == 0 {
+		port = 3306
 	}
 	
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", settings.User, settings.Passwd, host, port, settings.DBName), nil
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", settings.User, settings.Passwd, host, port, settings.DBName), nil
 }
