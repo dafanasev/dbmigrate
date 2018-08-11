@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+
+	// sqlite driver, imported only to exec init function
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func init() {

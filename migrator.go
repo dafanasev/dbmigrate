@@ -18,7 +18,7 @@ type Migrator struct {
 	migrationsDir string
 	// migrations table
 	migrationsTable string
-	// project dir (the one that has migrationsDir as straight subdir)
+	// project dir (the one that has migrationsDir as first level subdir)
 	projectDir string
 	dbWrapper  *dbWrapper
 }
@@ -167,7 +167,7 @@ func (m *Migrator) readMigrationsFromFiles(direction Direction) []*Migration {
 		if err != nil {
 			return nil
 		}
-		
+
 		if mpath != migrationsDirPath && info.IsDir() {
 			return filepath.SkipDir
 		}

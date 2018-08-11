@@ -1,6 +1,11 @@
 package migrate
 
-import "fmt"
+import (
+	"fmt"
+
+	// mysql driver, imported only to exec init function
+	_ "github.com/go-sql-driver/mysql"
+)
 
 func init() {
 	providers["mysql"] = &mysqlProvider{}

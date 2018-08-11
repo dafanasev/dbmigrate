@@ -3,6 +3,9 @@ package migrate
 import (
 	"fmt"
 	"strings"
+
+	// postgres driver, imported only to exec init function
+	_ "github.com/lib/pq"
 )
 
 func init() {

@@ -8,11 +8,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	// drivers, imported only to exec their init functions
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
