@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 	"time"
-	
+
 	"github.com/pkg/errors"
-	
+
 	// drivers, imported only to exec their init functions
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -43,12 +43,12 @@ func (w *dbWrapper) open() error {
 	if err != nil {
 		return err
 	}
-	
+
 	w.db, err = sql.Open(w.provider.driverName(), dsn)
 	if err != nil {
 		return errors.Wrap(err, "can't open database")
 	}
-	
+
 	return nil
 }
 
@@ -94,7 +94,7 @@ func (w *dbWrapper) lastMigrationData() (time.Time, error) {
 		return time.Time{}, nil
 	}
 	if err != nil {
-	    return time.Time{}, errors.Wrap(err, "can't select last migration version from database")
+		return time.Time{}, errors.Wrap(err, "can't select last migration version from database")
 	}
 	ts, _ := time.Parse(timestampFormat, version)
 	return ts, nil
@@ -106,7 +106,7 @@ func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, erro
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
 	}
 	defer rows.Close()
-	
+
 	var tss []time.Time
 	var v string
 	for rows.Next() {
@@ -140,13 +140,13 @@ func (w *dbWrapper) execQuery(query string) error {
 	if strings.TrimSpace(query) == "" {
 		return errors.New("empty query")
 	}
-	
+
 	// using transactions, although only mysql doesn't supports DDL ones
 	tx, err := w.db.Begin()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "can't begin transaction"))
 	}
-	
+
 	// split queries, because mysql driver can't exec multiple queries at once
 	queries := strings.Split(query, ";")
 	for _, q := range queries {
@@ -159,11 +159,11 @@ func (w *dbWrapper) execQuery(query string) error {
 			}
 		}
 	}
-	
+
 	err = tx.Commit()
 	if err != nil {
 		return errors.Wrap(err, "can't commit transaction")
 	}
-	
+
 	return nil
 }

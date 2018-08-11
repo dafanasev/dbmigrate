@@ -20,7 +20,7 @@ type provider interface {
 	sqlProvider
 }
 
-type defaultProvider struct {}
+type defaultProvider struct{}
 
 func (p *defaultProvider) hasTableQuery() string {
 	return "SELECT table_name FROM information_schema.tables WHERE table_name = ?"

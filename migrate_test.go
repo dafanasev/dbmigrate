@@ -3,7 +3,7 @@ package migrate
 import (
 	"os"
 	"testing"
-	
+
 	"github.com/magiconair/properties/assert"
 )
 
@@ -16,9 +16,9 @@ func TestMain(m *testing.M) {
 }
 
 func createTempStuff() {
-	os.MkdirAll("test/dir", os.ModeDir | os.ModePerm)
+	os.MkdirAll("test/dir", os.ModeDir|os.ModePerm)
 	os.Create("test/file")
-	os.MkdirAll("migrations", os.ModeDir | os.ModePerm)
+	os.MkdirAll("migrations", os.ModeDir|os.ModePerm)
 }
 
 func removeTempStuff() {
@@ -33,7 +33,7 @@ func cleanUp() {
 func Test_Direction_String(t *testing.T) {
 	d := directionUp
 	assert.Equal(t, "up", d.String())
-	
+
 	d = directionDown
 	assert.Equal(t, "down", d.String())
 }

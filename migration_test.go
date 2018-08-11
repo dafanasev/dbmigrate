@@ -1,23 +1,27 @@
 package migrate
 
 import (
+	"sort"
 	"strings"
 	"testing"
 	"time"
-	
+
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_byTimestamp_Less(t *testing.T) {
-	timestamps := []*Migration{{Timestamp: time.Now()}, {Timestamp: time.Now().Add(time.Second)}}
-	assert.True(t, byTimestamp(timestamps).Less(0, 1))
+func Test_byTimestamp(t *testing.T) {
+	ts1 := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
+	ts2 := ts1.Add(time.Second)
+	migrations := []*Migration{{Timestamp: ts2}, {Timestamp: ts1}}
+	sort.Sort(byTimestamp(migrations))
+	assert.Equal(t, []*Migration{{Timestamp: ts1}, {Timestamp: ts2}}, migrations)
 }
 
 func Test_Migration_fileName(t *testing.T) {
 	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
 	m := &Migration{Timestamp: ts, Name: "test_migration", direction: directionUp}
 	assert.Equal(t, "20100607080910.test_migration.up.sql", m.fileName())
-	
+
 	m.driverName = "postgres"
 	assert.Equal(t, "20100607080910.test_migration.up.postgres.sql", m.fileName())
 }
@@ -39,7 +43,7 @@ func Test_migrationFromFileName(t *testing.T) {
 		_, err := migrationFromFileName(fname)
 		assert.Error(t, err)
 	}
-	
+
 	rightNames := []string{
 		"20100607080910.test_migration.up.sql",
 		"20100607080910.test_migration.up.postgres.sql",
@@ -64,6 +68,3 @@ func Test_migrationFromFileName(t *testing.T) {
 		}
 	}
 }
-
-
-

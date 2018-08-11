@@ -2,7 +2,7 @@ package migrate
 
 import (
 	"testing"
-	
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,25 +13,25 @@ func Test_postgresProviderExist(t *testing.T) {
 }
 
 func Test_postgresProvider_driverName(t *testing.T) {
-	assert.Equal(t,"postgres", (&postgresProvider{}).driverName())
+	assert.Equal(t, "postgres", (&postgresProvider{}).driverName())
 }
 
 func Test_postgresProvider_dsn(t *testing.T) {
 	p := &postgresProvider{}
 	s := &Settings{}
-	
+
 	_, err := p.dsn(s)
 	assert.EqualError(t, err, errDBNameNotProvided.Error())
-	
+
 	s.DBName = "test"
 	_, err = p.dsn(s)
 	assert.EqualError(t, err, errUserNotProvided.Error())
-	
+
 	s.User = "root"
 	dsn, err := p.dsn(s)
 	require.NoError(t, err)
 	assert.Equal(t, "dbname=test user=root sslmode=disable", dsn)
-	
+
 	s.Passwd = "12345"
 	s.Host = "myhost"
 	s.Port = 5555

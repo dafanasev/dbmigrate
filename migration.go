@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	
+
 	"github.com/pkg/errors"
 )
 
@@ -30,7 +30,7 @@ func (m *Migration) fileName() string {
 		parts = append(parts, m.driverName)
 	}
 	parts = append(parts, "sql")
-	
+
 	return strings.Join(parts, ".")
 }
 
@@ -40,25 +40,25 @@ func (m *Migration) HumanName() string {
 
 func migrationFromFileName(fname string) (*Migration, error) {
 	errMsg := fmt.Sprintf("can't parse migration from filename %s", fname)
-	
+
 	if strings.ToLower(filepath.Ext(fname)) != ".sql" {
 		return nil, errors.Errorf("%s, file name is not sql", errMsg)
 	}
-	
+
 	parts := strings.Split(fname, ".")
-	
+
 	ts, err := time.Parse(timestampFormat, parts[0])
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}
-	
+
 	name := parts[1]
-	
+
 	direction, err := DirectionFromString(parts[2])
 	if err != nil {
-	    return nil, errors.Wrap(err, errMsg)
+		return nil, errors.Wrap(err, errMsg)
 	}
-	
+
 	// Migration that should be run on specific dbWrapper only
 	var driver string
 	// 4 for .sql extension
@@ -68,6 +68,6 @@ func migrationFromFileName(fname string) (*Migration, error) {
 		}
 		driver = strings.ToLower(parts[3])
 	}
-	
+
 	return &Migration{Timestamp: ts, Name: name, direction: direction, driverName: driver}, nil
 }

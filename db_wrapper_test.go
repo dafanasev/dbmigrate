@@ -1,15 +1,15 @@
 package migrate
 
 import (
-		"testing"
+	"testing"
 	"time"
-	
+
 	"github.com/stretchr/testify/assert"
-	)
+)
 
 func Test_newDBWrapper(t *testing.T) {
 	s := &Settings{}
-	for _, p := range []provider{&postgresProvider{}, &mysqlProvider{}, &sqliteProvider{}} 	{
+	for _, p := range []provider{&postgresProvider{}, &mysqlProvider{}, &sqliteProvider{}} {
 		w := newDBWrapper(s, p)
 		if _, ok := p.(*postgresProvider); ok {
 			assert.NotNil(t, w.placeholdersProvider)
@@ -22,7 +22,7 @@ func Test_newDBWrapper(t *testing.T) {
 func Test_dbWrapper_setPlaceholders(t *testing.T) {
 	s := &Settings{}
 	str := "SELECT * FROM posts WHERE author_id = ? AND created_AT > ? LIMIT 10 ORDER BY created_at ?"
-	for _, p := range []provider{&postgresProvider{}, &mysqlProvider{}, &sqliteProvider{}} 	{
+	for _, p := range []provider{&postgresProvider{}, &mysqlProvider{}, &sqliteProvider{}} {
 		w := newDBWrapper(s, p)
 		if _, ok := p.(*postgresProvider); ok {
 			expected := "SELECT * FROM posts WHERE author_id = $1 AND created_AT > $2 LIMIT 10 ORDER BY created_at $3"
@@ -42,61 +42,61 @@ func Test_dbWrapper(t *testing.T) {
 		if driverName == "mysql" {
 			s.Port = 3307
 		}
-		
+
 		w := newDBWrapper(s, provider)
 		err := w.open()
 		assert.NoError(t, err)
-		
+
 		tableExist, err := w.hasMigrationsTable()
 		assert.NoError(t, err)
 		assert.False(t, tableExist)
-		
+
 		err = w.createMigrationsTable()
 		assert.NoError(t, err)
-		
+
 		err = w.createMigrationsTable()
 		assert.Error(t, err)
-		
+
 		tableExist, err = w.hasMigrationsTable()
 		assert.NoError(t, err)
 		assert.True(t, tableExist)
-		
+
 		ts, err := w.lastMigrationData()
 		// no error and null time value means there are no migrations in the table
 		assert.NoError(t, err)
 		assert.Equal(t, time.Time{}, ts)
-		
+
 		tss, err := w.appliedMigrationsTimestamps("DESC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time(nil), tss)
-		
-		baseTs := time.Date(2010,6,7,8,9, 10, 0, time.UTC)
+
+		baseTs := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
 		for n := 0; n < 2; n++ {
 			err = w.insertMigrationTimestamp(baseTs.Add(time.Duration(n) * time.Second))
 			assert.NoError(t, err)
 		}
-		
+
 		ts, err = w.lastMigrationData()
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs.Add(time.Second), ts)
-		
+
 		tss, err = w.appliedMigrationsTimestamps("DESC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time{baseTs.Add(time.Second), baseTs}, tss)
-		
+
 		tss, err = w.appliedMigrationsTimestamps("ASC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time{baseTs, baseTs.Add(time.Second)}, tss)
-		
+
 		err = w.deleteMigrationTimestamp(baseTs.Add(time.Second))
 		assert.NoError(t, err)
-		
+
 		ts, err = w.lastMigrationData()
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs, ts)
-		
+
 		w.db.Exec("DROP TABLE migrations;")
-		
+
 		err = w.close()
 		assert.NoError(t, err)
 	}
@@ -111,10 +111,10 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 		if driverName == "mysql" {
 			s.Port = 3307
 		}
-		
+
 		w := newDBWrapper(s, provider)
 		w.open()
-		
+
 		// wrong one command querie
 		wrongQueries := []string{
 			"",
@@ -126,7 +126,7 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 			tableExists, _ := w.hasMigrationsTable()
 			assert.False(t, tableExists)
 		}
-		
+
 		// right one command query
 		query := "CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));"
 		err := w.execQuery(query)
@@ -136,7 +136,7 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "posts", table)
 		w.db.Exec("DROP TABLE posts;")
-		
+
 		// right multiple commands query
 		query = `
 			CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));
@@ -150,7 +150,7 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "First post", title)
 		w.db.Exec("DROP TABLE posts;")
-		
+
 		// wrong multiple commands query
 		query = `
 			CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));
@@ -173,7 +173,7 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 			assert.Equal(t, "", title)
 		}
 		w.db.Exec("DROP TABLE posts;")
-		
+
 		w.close()
 	}
 }

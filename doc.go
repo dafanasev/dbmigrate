@@ -18,4 +18,5 @@ package migrate
 	TODO:
 	* Dockerfile
 	* Vendor libs
+	* move transaction out of execQuery into separate up/down methods
 */
