@@ -1,7 +1,9 @@
 package migrate
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,11 +22,30 @@ func createTempStuff() {
 	os.MkdirAll("test/dir", os.ModeDir|os.ModePerm)
 	os.Create("test/file")
 	os.MkdirAll("migrations", os.ModeDir|os.ModePerm)
+	os.MkdirAll("test_migrations", os.ModeDir|os.ModePerm)
+
+	os.MkdirAll("test_migrations/subfolder", os.ModeDir|os.ModePerm)
+
+	fileData := map[string]string{
+		"8234234.incorrect_name.noql.sql":                        "",
+		"20180918200453.correct.up.sql":                          "CREATE TABLE posts (title VARCHAR NOT NULL, content TEXT NOT NULL, PRIMARY KEY(title));",
+		"20180918200453.correct.down.sql":                        "DROP TABLE posts;",
+		"20180918200632.duplicate.up.sql":                        "CREATE TABLE authors (name VARCHAR NOT NULL, email VARCHAR NOT NULL, PRIMARY KEY(email));",
+		"20180918200632.duplicate2.up.sql":                       "",
+		"20180918200632.duplicate.down.sql":                      "DROP TABLE authors;",
+		"20180918200742.wrong_driver.up.postgres.sql":            "",
+		"20180918201019.specific_driver_correct.up.sqlite.sql":   "CREATE TABLE comments (author VARCHAR NOT NULL, content TEXT NOT NULL, PRIMARY KEY(author))\n; CREATE TABLE tags (title VARCHAR NOT NULL, PRIMARY KEY(title));",
+		"20180918201019.specific_driver_correct.down.sqlite.sql": "DROP TABLE comments;\n DROP TABLE tags;",
+	}
+	for fname, content := range fileData {
+		ioutil.WriteFile(filepath.Join("test_migrations", fname), []byte(content), 0644)
+	}
 }
 
 func removeTempStuff() {
 	os.RemoveAll("test")
 	os.RemoveAll("migrations")
+	os.RemoveAll("test_migrations")
 	os.Remove("test.db")
 	os.Remove("migrate_test")
 }

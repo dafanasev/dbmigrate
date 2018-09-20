@@ -1,1 +1,0 @@
-CREATE TABLE authors (name VARCHAR NOT NULL, email VARCHAR NOT NULL, PRIMARY KEY(email));
