@@ -119,7 +119,7 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 		}
 
 		if i < 3 {
-			m.dbWrapper.insertMigrationTimestamp(migrations[i].Timestamp)
+			m.dbWrapper.insertMigrationTimestamp(migrations[i].Timestamp, time.Now())
 		}
 	}
 }
@@ -153,13 +153,13 @@ func TestMigrator_Migrator_LastMigration(t *testing.T) {
 	assert.Nil(t, migration)
 
 	ts := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
-	_ = m.dbWrapper.insertMigrationTimestamp(ts)
+	_ = m.dbWrapper.insertMigrationTimestamp(ts, time.Now())
 	migration, err = m.LastMigration()
 	require.NoError(t, err)
 	assert.Equal(t, ts, migration.Timestamp)
 
 	ts = time.Date(2018, 9, 18, 22, 2, 34, 0, time.UTC)
-	_ = m.dbWrapper.insertMigrationTimestamp(ts)
+	_ = m.dbWrapper.insertMigrationTimestamp(ts, time.Now())
 	_, err = m.LastMigration()
 	assert.Contains(t, err.Error(), "can't get last migration with timestamp")
 }
@@ -195,6 +195,12 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 	lm, _ := m.LastMigration()
+	assert.Nil(t, lm)
+
+	n, err = m.DownSteps(1)
+	require.NoError(t, err)
+	assert.Equal(t, 0, n)
+	lm, _ = m.LastMigration()
 	assert.Nil(t, lm)
 
 	n, err = m.UpSteps(1)
@@ -233,8 +239,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	lm, _ = m.LastMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Timestamp)
 
-	// TODO: insert applied_at timestamp to rollback in batches
-	n, err = m.DownSteps(2)
+	n, err = m.Down()
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	lm, _ = m.LastMigration()

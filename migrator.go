@@ -99,6 +99,7 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 		steps = len(migrations)
 	}
 
+	appliedAt := time.Now()
 	// TODO: think about prints
 	for i, migration := range migrations[:steps] {
 		err = m.run(migration)
@@ -106,7 +107,7 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 			return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
 		}
 
-		err = m.dbWrapper.insertMigrationTimestamp(migration.Timestamp)
+		err = m.dbWrapper.insertMigrationTimestamp(migration.Timestamp, appliedAt)
 		if err != nil {
 			return i, errors.Wrapf(err, "can't insert timestamp for migration %s", migration.HumanName())
 		}
@@ -115,7 +116,11 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 }
 
 func (m *Migrator) Down() (int, error) {
-	return m.DownSteps(1)
+	steps, err := m.dbWrapper.countMigrationsInLastBatch()
+	if err != nil {
+		return 0, err
+	}
+	return m.DownSteps(steps)
 }
 
 func (m *Migrator) DownSteps(steps int) (int, error) {

@@ -71,15 +71,28 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time(nil), tss)
 
+		n, err := w.countMigrationsInLastBatch()
+		assert.NoError(t, err)
+		assert.Zero(t, n)
+
 		baseTs := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
+		now := time.Now().UTC().Truncate(time.Second)
 		for n := 0; n < 2; n++ {
-			err = w.insertMigrationTimestamp(baseTs.Add(time.Duration(n) * time.Second))
+			err = w.insertMigrationTimestamp(baseTs.Add(time.Duration(n)*time.Second), now)
 			assert.NoError(t, err)
 		}
 
 		ts, err = w.lastMigrationTimestamp()
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs.Add(time.Second), ts)
+
+		ts, err = w.lastMigrationAppliedAt()
+		assert.NoError(t, err)
+		assert.Equal(t, now, ts)
+
+		n, err = w.countMigrationsInLastBatch()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, n)
 
 		tss, err = w.appliedMigrationsTimestamps("DESC")
 		assert.NoError(t, err)
