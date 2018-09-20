@@ -33,18 +33,18 @@ func Test_Migration_HumanName(t *testing.T) {
 }
 
 func Test_migrationFromFileName(t *testing.T) {
-	wrongNames := []string{
+	incorrectNames := []string{
 		"20100607080910.test_migration.up.wrong",
 		"201000607080910.test_migration.up.sql",
 		"20100607080910.test_migration.upp.sql",
 		"20100607080910.test_migration.up.msql.sql",
 	}
-	for _, fname := range wrongNames {
+	for _, fname := range incorrectNames {
 		_, err := migrationFromFileName(fname)
 		assert.Error(t, err)
 	}
 
-	rightNames := []string{
+	correctNames := []string{
 		"20100607080910.test_migration.up.sql",
 		"20100607080910.test_migration.up.postgres.sql",
 		"20100607080910.test_migration.up.postGres.sql",
@@ -53,7 +53,7 @@ func Test_migrationFromFileName(t *testing.T) {
 		"20100607080910.test migration.up.postGres.sql",
 		"20100607080910.test 123 $^* migration.up.postgres.sql",
 	}
-	for _, fname := range rightNames {
+	for _, fname := range correctNames {
 		m, err := migrationFromFileName(fname)
 		assert.NoError(t, err)
 		ts := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)

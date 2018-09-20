@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -74,6 +76,36 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 	}
 
 	return m, nil
+}
+
+func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, error) {
+	fnames := []string{}
+
+	ts := time.Now().UTC()
+	re := regexp.MustCompile(`\s+`)
+
+	for _, direction := range []string{"up", "down"} {
+		parts := []string{ts.Format(timestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_")}
+		if isSpecific {
+			parts = append(parts, m.dbWrapper.settings.Driver)
+		}
+		parts = append(parts, direction, "sql")
+
+		fname := strings.Join(parts, ".")
+		fpath := filepath.Join(m.migrationsDir, fname)
+
+		if fileExists(fpath) {
+			return nil, errors.Errorf("migration file %s already exists", fname)
+		}
+
+		_, err := os.Create(fpath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "can't create migration file %s", fname)
+		}
+
+		fnames = append(fnames, fname)
+	}
+	return fnames, nil
 }
 
 // Close frees resources acquired by migrator
@@ -192,7 +224,7 @@ func (m *Migrator) LastMigration() (*Migration, error) {
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
 func (m *Migrator) findProjectDir(dir string) (string, error) {
-	if isDirExists(filepath.Join(dir, m.migrationsDir)) {
+	if dirExists(filepath.Join(dir, m.migrationsDir)) {
 		return dir, nil
 	}
 
@@ -229,7 +261,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 			return nil
 		}
 
-		// Migration that should be run on specific dbWrapper only
+		// Migration that should be run on isSpecific dbWrapper only
 		if migration.driverName != "" && migration.driverName != m.dbWrapper.settings.Driver {
 			return nil
 		}

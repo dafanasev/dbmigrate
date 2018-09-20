@@ -59,7 +59,7 @@ func migrationFromFileName(fname string) (*Migration, error) {
 		return nil, errors.Wrap(err, errMsg)
 	}
 
-	// Migration that should be run on specific dbWrapper only
+	// Migration that should be run on isSpecific dbWrapper only
 	var driver string
 	// 4 for .sql extension
 	if len(parts) > 4 {

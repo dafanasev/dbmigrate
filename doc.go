@@ -3,12 +3,12 @@ package migrate
 /*
 	Features:
 	* up and down migrations +
-	* specific dialect migrations +
+	* isSpecific dialect migrations +
 	* store migrations in files +
 	* or embed into binary
 	* use as library +
 	* or CLI tool
-	* migrations generator
+	* migrations generator +
 	* printing progress (using migration and error channels)
 	* option to return error or skip step when rollback and down migration is not exist
 	* graceful shutdown
@@ -19,4 +19,6 @@ package migrate
 
 	TODO:
 	* Dockerfile
+	* comments
+	* Readme
 */

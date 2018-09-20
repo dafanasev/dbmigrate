@@ -74,7 +74,7 @@ func Test_Migrator_getMigration(t *testing.T) {
 	expected := &Migration{Timestamp: ts, Name: "correct", direction: directionUp}
 	assert.Equal(t, expected, migration)
 
-	// correct for the specific driver
+	// correct for the isSpecific driver
 	ts = time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC)
 	migration, err = m.getMigration(ts, directionUp)
 	require.NoError(t, err)
@@ -244,4 +244,36 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	assert.Equal(t, 2, n)
 	lm, _ = m.LastMigration()
 	assert.Nil(t, lm)
+}
+
+func Test_Migrator_GenerateMigration(t *testing.T) {
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	defer m.Close()
+
+	testData := []struct {
+		descr      string
+		isSpecific bool
+	}{
+		{" test  migration \n ", false},
+		{" test\tspecific migration \n ", true},
+	}
+	for _, data := range testData {
+		fnames, err := m.GenerateMigration(data.descr, data.isSpecific)
+		assert.NoError(t, err)
+		for _, fname := range fnames {
+			descrPart := "test_migration"
+			if data.isSpecific {
+				descrPart = "test_specific_migration"
+			}
+			assert.Contains(t, fname, descrPart)
+			assert.True(t, fileExists(filepath.Join(m.migrationsDir, fname)))
+		}
+
+		_, err = m.GenerateMigration(data.descr, data.isSpecific)
+		assert.Contains(t, err.Error(), "already exists")
+
+		for _, fname := range fnames {
+			os.Remove(filepath.Join(m.migrationsDir, fname))
+		}
+	}
 }
