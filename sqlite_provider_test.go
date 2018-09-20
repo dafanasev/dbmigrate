@@ -25,7 +25,7 @@ func Test_sqliteProvider_dsn(t *testing.T) {
 	assert.EqualError(t, err, errDBNameNotProvided.Error())
 
 	s.MigrationsDir = "not_existed"
-	s.DBName = "test.db"
+	s.DB = "test.db"
 	_, err = p.dsn(s)
 	assert.Error(t, err)
 
@@ -33,10 +33,10 @@ func Test_sqliteProvider_dsn(t *testing.T) {
 
 	// from project root dir
 	for _, dir := range []string{".", "..", "test", "/some/absolute/path"} {
-		s.DBName = filepath.Join(dir, "test.db")
+		s.DB = filepath.Join(dir, "test.db")
 		dsn, err := p.dsn(s)
 		assert.NoError(t, err)
-		assert.Equal(t, s.DBName, dsn)
+		assert.Equal(t, s.DB, dsn)
 	}
 
 	// from project subdir
@@ -44,13 +44,13 @@ func Test_sqliteProvider_dsn(t *testing.T) {
 	os.Chdir(filepath.Join(wd, "migrations"))
 
 	for _, dir := range []string{".", "..", "test"} {
-		s.DBName = filepath.Join(dir, "test.db")
+		s.DB = filepath.Join(dir, "test.db")
 		dsn, err := p.dsn(s)
 		assert.NoError(t, err)
-		assert.Equal(t, filepath.Join("..", s.DBName), dsn)
+		assert.Equal(t, filepath.Join("..", s.DB), dsn)
 	}
 
-	s.DBName = "/some/absolute/path/test.db"
+	s.DB = "/some/absolute/path/test.db"
 	dsn, err := p.dsn(s)
 	assert.NoError(t, err)
 	assert.Equal(t, "/some/absolute/path/test.db", dsn)

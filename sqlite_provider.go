@@ -21,19 +21,19 @@ func (p *sqliteProvider) driverName() string {
 }
 
 func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
-	if settings.DBName == "" {
+	if settings.DB == "" {
 		return "", errDBNameNotProvided
 	}
 
-	if filepath.IsAbs(settings.DBName) {
-		return settings.DBName, nil
+	if filepath.IsAbs(settings.DB) {
+		return settings.DB, nil
 	}
 
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", errors.Wrap(err, "can't get working directory")
 	}
-	dbPath := settings.DBName
+	dbPath := settings.DB
 	for !isDirExists(filepath.Join(dir, settings.MigrationsDir)) {
 		if isRootDir(dir) {
 			return "", errors.New("project root is not found")

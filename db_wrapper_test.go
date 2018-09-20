@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_newDBWrapper(t *testing.T) {
@@ -35,7 +36,7 @@ func Test_dbWrapper_setPlaceholders(t *testing.T) {
 
 func Test_dbWrapper(t *testing.T) {
 	for driverName, provider := range providers {
-		s := &Settings{DriverName: driverName, DBName: "migrate_test", User: "migrate", Passwd: "mysecretpassword", MigrationsTable: "migrations"}
+		s := &Settings{Driver: driverName, DB: "migrate_test", User: "migrate", Passwd: "mysecretpassword", MigrationsTable: "migrations"}
 		if driverName == "postgres" {
 			s.Port = 5433
 		}
@@ -45,7 +46,7 @@ func Test_dbWrapper(t *testing.T) {
 
 		w := newDBWrapper(s, provider)
 		err := w.open()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		tableExist, err := w.hasMigrationsTable()
 		assert.NoError(t, err)
@@ -61,7 +62,7 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, tableExist)
 
-		ts, err := w.lastMigrationData()
+		ts, err := w.lastMigrationTimestamp()
 		// no error and null time value means there are no migrations in the table
 		assert.NoError(t, err)
 		assert.Equal(t, time.Time{}, ts)
@@ -76,7 +77,7 @@ func Test_dbWrapper(t *testing.T) {
 			assert.NoError(t, err)
 		}
 
-		ts, err = w.lastMigrationData()
+		ts, err = w.lastMigrationTimestamp()
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs.Add(time.Second), ts)
 
@@ -91,7 +92,7 @@ func Test_dbWrapper(t *testing.T) {
 		err = w.deleteMigrationTimestamp(baseTs.Add(time.Second))
 		assert.NoError(t, err)
 
-		ts, err = w.lastMigrationData()
+		ts, err = w.lastMigrationTimestamp()
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs, ts)
 
@@ -104,7 +105,7 @@ func Test_dbWrapper(t *testing.T) {
 
 func Test_dbWrapper_execQuery(t *testing.T) {
 	for driverName, provider := range providers {
-		s := &Settings{DriverName: driverName, DBName: "migrate_test", User: "migrate", Passwd: "mysecretpassword", MigrationsTable: "migrations"}
+		s := &Settings{Driver: driverName, DB: "migrate_test", User: "migrate", Passwd: "mysecretpassword", MigrationsTable: "migrations"}
 		if driverName == "postgres" {
 			s.Port = 5433
 		}
@@ -162,7 +163,7 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 		assert.Error(t, err)
 		title = ""
 		err = w.db.QueryRow("SELECT title FROM posts LIMIT 1").Scan(&title)
-		if s.DriverName == "mysql" {
+		if s.Driver == "mysql" {
 			// mysql doesn't support DDL, therefore first two statements are not rolled back
 			assert.NoError(t, err)
 			assert.Equal(t, "First post", title)

@@ -8,14 +8,15 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	removeTempStuff()
 	createTempStuff()
 	code := m.Run()
 	removeTempStuff()
-	cleanUp()
 	os.Exit(code)
 }
 
 func createTempStuff() {
+	removeTempStuff()
 	os.MkdirAll("test/dir", os.ModeDir|os.ModePerm)
 	os.Create("test/file")
 	os.MkdirAll("migrations", os.ModeDir|os.ModePerm)
@@ -24,9 +25,7 @@ func createTempStuff() {
 func removeTempStuff() {
 	os.RemoveAll("test")
 	os.RemoveAll("migrations")
-}
-
-func cleanUp() {
+	os.Remove("test.db")
 	os.Remove("migrate_test")
 }
 

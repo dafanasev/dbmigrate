@@ -20,7 +20,7 @@ func (p *mysqlProvider) driverName() string {
 }
 
 func (p *mysqlProvider) dsn(settings *Settings) (string, error) {
-	if settings.DBName == "" {
+	if settings.DB == "" {
 		return "", errDBNameNotProvided
 	}
 
@@ -37,5 +37,5 @@ func (p *mysqlProvider) dsn(settings *Settings) (string, error) {
 		port = 3306
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", settings.User, settings.Passwd, host, port, settings.DBName), nil
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", settings.User, settings.Passwd, host, port, settings.DB), nil
 }

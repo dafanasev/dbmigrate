@@ -30,6 +30,7 @@ func newDBWrapper(settings *Settings, provider provider) *dbWrapper {
 	if pp, ok := w.provider.(placeholdersProvider); ok {
 		w.placeholdersProvider = pp
 	}
+
 	return w
 }
 
@@ -82,7 +83,7 @@ func (w *dbWrapper) createMigrationsTable() error {
 	return nil
 }
 
-func (w *dbWrapper) lastMigrationData() (time.Time, error) {
+func (w *dbWrapper) lastMigrationTimestamp() (time.Time, error) {
 	var version string
 	err := w.db.QueryRow(fmt.Sprintf("SELECT version FROM %s ORDER BY version DESC LIMIT 1", w.settings.MigrationsTable)).Scan(&version)
 	if err == sql.ErrNoRows {
@@ -133,6 +134,7 @@ func (w *dbWrapper) deleteMigrationTimestamp(ts time.Time) error {
 
 func (w *dbWrapper) execQuery(query string) error {
 	if strings.TrimSpace(query) == "" {
+		// TODO: option to skip empty migrations instead of returning an error
 		return errors.New("empty query")
 	}
 

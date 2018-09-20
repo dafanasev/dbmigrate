@@ -23,10 +23,10 @@ func (p *postgresProvider) driverName() string {
 func (p *postgresProvider) dsn(settings *Settings) (string, error) {
 	var kvs []string
 
-	if settings.DBName == "" {
+	if settings.DB == "" {
 		return "", errDBNameNotProvided
 	}
-	kvs = append(kvs, "dbname="+settings.DBName)
+	kvs = append(kvs, "dbname="+settings.DB)
 
 	if settings.User == "" {
 		return "", errUserNotProvided

@@ -23,7 +23,7 @@ func Test_postgresProvider_dsn(t *testing.T) {
 	_, err := p.dsn(s)
 	assert.EqualError(t, err, errDBNameNotProvided.Error())
 
-	s.DBName = "test"
+	s.DB = "test"
 	_, err = p.dsn(s)
 	assert.EqualError(t, err, errUserNotProvided.Error())
 

@@ -4,8 +4,8 @@ var timestampFormat = "20060102150405"
 var printTimestampFormat = "2006.01.02 15:04:05"
 
 type Settings struct {
-	DriverName      string
-	DBName          string
+	Driver          string
+	DB              string
 	Host            string
 	Port            int
 	User            string

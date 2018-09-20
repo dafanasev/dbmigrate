@@ -1,0 +1,2 @@
+CREATE TABLE comments (author VARCHAR NOT NULL, content TEXT NOT NULL, PRIMARY KEY(author));
+CREATE TABLE tags (title VARCHAR NOT NULL, PRIMARY KEY(title));
