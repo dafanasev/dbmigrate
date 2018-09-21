@@ -79,7 +79,7 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 }
 
 func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, error) {
-	fnames := []string{}
+	var fnames []string
 
 	ts := time.Now().UTC()
 	re := regexp.MustCompile(`\s+`)

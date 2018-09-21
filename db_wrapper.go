@@ -162,7 +162,7 @@ func (w *dbWrapper) execQuery(query string) error {
 		return errors.New("empty query")
 	}
 
-	// using transactions, although only mysql doesn't supports DDL ones
+	// using transactions, although only postgres supports supports DDL ones
 	tx, err := w.db.Begin()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "can't begin transaction"))
