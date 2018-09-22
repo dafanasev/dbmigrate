@@ -167,7 +167,12 @@ func TestMigrator_Migrator_LastMigration(t *testing.T) {
 
 func Test_Migrator_run(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+
+	migrationsCh := make(chan *Migration)
+	errorsCh := make(chan error)
+	done := make(chan struct{})
+
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations", MigrationsCh: migrationsCh, ErrorsCh: errorsCh})
 	defer m.Close()
 
 	migration, _ := migrationFromFileName("20180918100423.incorrect.up.sql")
@@ -178,23 +183,40 @@ func Test_Migrator_run(t *testing.T) {
 	err = m.run(migration)
 	assert.EqualError(t, err, ErrEmptyQuery.Error())
 
+	go func() {
+		migration := <-migrationsCh
+		assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), migration.Timestamp)
+		done <- struct{}{}
+	}()
 	migration, _ = migrationFromFileName("20180918200453.correct.up.sql")
 	err = m.run(migration)
 	require.NoError(t, err)
+	<-done
 
 	migration, _ = migrationFromFileName("20180918200742.wrong_driver.down.postgres.sql")
 	err = m.run(migration)
 	assert.EqualError(t, err, ErrEmptyQuery.Error())
 
+	go func() {
+		err := <-errorsCh
+		assert.EqualError(t, err, ErrEmptyQuery.Error())
+		done <- struct{}{}
+	}()
+
 	m.AllowMissingDowns = true
+	m.ErrorsCh = errorsCh
 	err = m.run(migration)
 	require.NoError(t, err)
+	<-done
 }
 
 func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	os.Remove("test.db")
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	errorsCh := make(chan error)
+	done := make(chan struct{})
+
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations", ErrorsCh: errorsCh})
 	defer m.Close()
 
 	n, err := m.Down()
@@ -214,6 +236,27 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	assert.Equal(t, 1, n)
 	lm, _ = m.LastMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Timestamp)
+
+	os.Rename("test_migrations/20180918200453.correct.down.sql", "./20180918200453.correct.down.sql")
+
+	n, err = m.Down()
+	assert.Contains(t, err.Error(), "can't get migration for")
+	assert.Equal(t, 0, n)
+
+	go func() {
+		err := <-errorsCh
+		assert.Contains(t, err.Error(), "can't get migration for")
+		done <- struct{}{}
+	}()
+
+	m.AllowMissingDowns = true
+	n, err = m.Down()
+	require.NoError(t, err)
+	assert.Equal(t, 0, n)
+	<-done
+	m.AllowMissingDowns = false
+
+	os.Rename("./20180918200453.correct.down.sql", "test_migrations/20180918200453.correct.down.sql")
 
 	n, err = m.Down()
 	require.NoError(t, err)
@@ -282,44 +325,4 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 			os.Remove(filepath.Join(m.MigrationsDir, fname))
 		}
 	}
-}
-
-func Test_Migrator_NotificationChannels(t *testing.T) {
-	os.Remove("test.db")
-	defer os.Remove("test.db")
-
-	done := make(chan struct{})
-	migrationsCh := make(chan *Migration)
-	errorsCh := make(chan error)
-
-	m, _ := NewMigrator(&Settings{
-		Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations",
-		MigrationsCh: migrationsCh, ErrorsCh: errorsCh, AllowMissingDowns: true,
-	})
-	defer m.Close()
-
-	go func() {
-		migration := <-migrationsCh
-		assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), migration.Timestamp)
-		done <- struct{}{}
-	}()
-
-	n, err := m.UpSteps(1)
-	require.NoError(t, err)
-	assert.Equal(t, 1, n)
-	<-done
-
-	os.Rename("test_migrations/20180918200453.correct.down.sql", "./20180918200453.correct.down.sql")
-	defer os.Rename("./20180918200453.correct.down.sql", "test_migrations/20180918200453.correct.down.sql")
-
-	go func() {
-		err := <-errorsCh
-		assert.Contains(t, err.Error(), "can't get migration for")
-		done <- struct{}{}
-	}()
-
-	n, err = m.Down()
-	require.NoError(t, err)
-	assert.Equal(t, 0, n)
-	<-done
 }

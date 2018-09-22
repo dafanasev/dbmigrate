@@ -1,13 +1,7 @@
 package migrate
 
-import "github.com/pkg/errors"
-
 var timestampFormat = "20060102150405"
 var printTimestampFormat = "2006.01.02 15:04:05"
-
-var (
-	ErrEmptyQuery = errors.New("empty query")
-)
 
 type Settings struct {
 	Driver string

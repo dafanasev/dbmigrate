@@ -13,6 +13,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var ErrEmptyQuery = errors.New("empty query")
+
 const allSteps = 0
 
 type Migrator struct {
@@ -139,8 +141,6 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 		if err != nil {
 			return i, errors.Wrapf(err, "can't insert timestamp for migration %s", migration.HumanName())
 		}
-
-		m.migrationNotification(migration)
 	}
 	return len(migrations[:steps]), nil
 }
@@ -173,7 +173,9 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 			if !m.AllowMissingDowns {
 				return 0, err
 			}
-			m.errorNotification(err)
+			if m.ErrorsCh != nil {
+				m.ErrorsCh <- err
+			}
 		}
 	}
 
@@ -186,8 +188,6 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 		if err != nil {
 			return i, errors.Wrapf(err, "can't delete timestamp %s from db", migration.Timestamp.Format(printTimestampFormat))
 		}
-
-		m.migrationNotification(migration)
 	}
 	return len(migrations), nil
 }
@@ -205,11 +205,16 @@ func (m *Migrator) run(migration *Migration) error {
 		if err != nil {
 			return errors.Wrapf(err, "can't exec query for migration %s", migration.HumanName())
 		}
+		if m.MigrationsCh != nil {
+			m.MigrationsCh <- migration
+		}
 	} else {
 		if migration.direction == directionUp || (migration.direction == directionDown && !m.AllowMissingDowns) {
 			return ErrEmptyQuery
 		}
-		m.errorNotification(ErrEmptyQuery)
+		if m.ErrorsCh != nil {
+			m.ErrorsCh <- ErrEmptyQuery
+		}
 	}
 
 	return nil
@@ -343,16 +348,4 @@ func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, 
 	}
 
 	return migration, nil
-}
-
-func (m *Migrator) migrationNotification(migration *Migration) {
-	if m.MigrationsCh != nil {
-		m.MigrationsCh <- migration
-	}
-}
-
-func (m *Migrator) errorNotification(err error) {
-	if m.ErrorsCh != nil {
-		m.ErrorsCh <- err
-	}
 }
