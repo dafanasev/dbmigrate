@@ -176,9 +176,17 @@ func Test_Migrator_run(t *testing.T) {
 
 	migration, _ = migrationFromFileName("20180918200742.wrong_driver.up.postgres.sql")
 	err = m.run(migration)
-	assert.Contains(t, err.Error(), "can't exec query for migration")
+	assert.EqualError(t, err, ErrEmptyQuery.Error())
 
 	migration, _ = migrationFromFileName("20180918200453.correct.up.sql")
+	err = m.run(migration)
+	require.NoError(t, err)
+
+	migration, _ = migrationFromFileName("20180918200742.wrong_driver.down.postgres.sql")
+	err = m.run(migration)
+	assert.EqualError(t, err, ErrEmptyQuery.Error())
+
+	m.AllowMissingDowns = true
 	err = m.run(migration)
 	require.NoError(t, err)
 }
@@ -282,8 +290,12 @@ func Test_Migrator_NotificationChannels(t *testing.T) {
 
 	done := make(chan struct{})
 	migrationsCh := make(chan *Migration)
+	errorsCh := make(chan error)
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations", MigrationsCh: migrationsCh})
+	m, _ := NewMigrator(&Settings{
+		Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations",
+		MigrationsCh: migrationsCh, ErrorsCh: errorsCh, AllowMissingDowns: true,
+	})
 	defer m.Close()
 
 	go func() {
@@ -295,5 +307,19 @@ func Test_Migrator_NotificationChannels(t *testing.T) {
 	n, err := m.UpSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
+	<-done
+
+	os.Rename("test_migrations/20180918200453.correct.down.sql", "./20180918200453.correct.down.sql")
+	defer os.Rename("./20180918200453.correct.down.sql", "test_migrations/20180918200453.correct.down.sql")
+
+	go func() {
+		err := <-errorsCh
+		assert.Contains(t, err.Error(), "can't get migration for")
+		done <- struct{}{}
+	}()
+
+	n, err = m.Down()
+	require.NoError(t, err)
+	assert.Equal(t, 0, n)
 	<-done
 }

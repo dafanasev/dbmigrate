@@ -157,11 +157,6 @@ func (w *dbWrapper) deleteMigrationTimestamp(ts time.Time) error {
 }
 
 func (w *dbWrapper) execQuery(query string) error {
-	if strings.TrimSpace(query) == "" {
-		// TODO: option to skip empty migrations instead of returning an error
-		return errors.New("empty query")
-	}
-
 	// using transactions, although only postgres supports supports DDL ones
 	tx, err := w.db.Begin()
 	if err != nil {

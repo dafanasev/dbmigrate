@@ -166,11 +166,15 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 	var migrations []*Migration
 	for _, ts := range appliedMigrationsTimestamps[:steps] {
 		migration, err := m.getMigration(ts, directionDown)
-		// TODO: option to skip not found migration instead of returning the error
-		if err != nil {
-			return 0, errors.Wrapf(err, "can't get migration for timestamp %s", ts.Format(printTimestampFormat))
+		if err == nil {
+			migrations = append(migrations, migration)
+		} else {
+			err = errors.Wrapf(err, "can't get migration for timestamp %s", ts.Format(printTimestampFormat))
+			if !m.AllowMissingDowns {
+				return 0, err
+			}
+			m.errorNotification(err)
 		}
-		migrations = append(migrations, migration)
 	}
 
 	for i, migration := range migrations {
@@ -196,9 +200,16 @@ func (m *Migrator) run(migration *Migration) error {
 		return errors.Wrapf(err, "can't read file for migration %s", migration.HumanName())
 	}
 
-	err = m.dbWrapper.execQuery(string(query))
-	if err != nil {
-		return errors.Wrapf(err, "can't exec query for migration %s", migration.HumanName())
+	if strings.TrimSpace(string(query)) != "" {
+		err = m.dbWrapper.execQuery(string(query))
+		if err != nil {
+			return errors.Wrapf(err, "can't exec query for migration %s", migration.HumanName())
+		}
+	} else {
+		if migration.direction == directionUp || (migration.direction == directionDown && !m.AllowMissingDowns) {
+			return ErrEmptyQuery
+		}
+		m.errorNotification(ErrEmptyQuery)
 	}
 
 	return nil

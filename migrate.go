@@ -1,7 +1,13 @@
 package migrate
 
+import "github.com/pkg/errors"
+
 var timestampFormat = "20060102150405"
 var printTimestampFormat = "2006.01.02 15:04:05"
+
+var (
+	ErrEmptyQuery = errors.New("empty query")
+)
 
 type Settings struct {
 	Driver string
@@ -11,8 +17,9 @@ type Settings struct {
 	User   string
 	Passwd string
 	// MigrationsDir is the dir for migrations
-	MigrationsDir   string
-	MigrationsTable string
+	MigrationsDir     string
+	MigrationsTable   string
+	AllowMissingDowns bool
 	// migrationsCh is the channel for applied migrations
 	MigrationsCh chan<- *Migration
 	// errorsChan is the channel for errors

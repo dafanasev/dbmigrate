@@ -33,6 +33,7 @@ func createTempStuff() {
 		"20180918200632.other_correct.up.sql":                    "CREATE TABLE authors (name VARCHAR NOT NULL, email VARCHAR NOT NULL, PRIMARY KEY(email));",
 		"20180918200632.other_correct.down.sql":                  "DROP TABLE authors;",
 		"20180918200742.wrong_driver.up.postgres.sql":            "",
+		"20180918200742.wrong_driver.down.postgres.sql":          "",
 		"20180918201019.specific_driver_correct.up.sqlite.sql":   "CREATE TABLE comments (author VARCHAR NOT NULL, content TEXT NOT NULL, PRIMARY KEY(author))\n; CREATE TABLE tags (title VARCHAR NOT NULL, PRIMARY KEY(title));",
 		"20180918201019.specific_driver_correct.down.sqlite.sql": "DROP TABLE comments;\n DROP TABLE tags;",
 	}

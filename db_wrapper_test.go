@@ -130,20 +130,14 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 		w.open()
 
 		// wrong one command querie
-		wrongQueries := []string{
-			"",
-			"CREATE TABLE posts ERROR title VARCHAR(255) NOT NULL, PRIMARY KEY(title));",
-		}
-		for _, query := range wrongQueries {
-			err := w.execQuery(query)
-			assert.Error(t, err)
-			tableExists, _ := w.hasMigrationsTable()
-			assert.False(t, tableExists)
-		}
+		err := w.execQuery("CREATE TABLE posts ERROR title VARCHAR(255) NOT NULL, PRIMARY KEY(title));")
+		assert.Error(t, err)
+		tableExists, _ := w.hasMigrationsTable()
+		assert.False(t, tableExists)
 
 		// right one command query
 		query := "CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));"
-		err := w.execQuery(query)
+		err = w.execQuery(query)
 		assert.NoError(t, err)
 		var table string
 		err = w.db.QueryRow(w.setPlaceholders(w.provider.hasTableQuery()), "posts").Scan(&table)
