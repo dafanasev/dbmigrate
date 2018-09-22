@@ -48,6 +48,9 @@ func Test_Migrator_getMigration(t *testing.T) {
 	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
 	defer m.Close()
 
+	os.Create(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
+	defer os.Remove(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
+
 	// does not exist at all
 	_, err := m.getMigration(time.Date(2018, 9, 10, 11, 12, 13, 0, time.UTC), directionUp)
 	assert.Contains(t, err.Error(), "does not exist")
@@ -88,11 +91,11 @@ func Test_Migrator_findMigrations(t *testing.T) {
 	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
 	defer m.Close()
 
+	os.Create(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
 	_, err := m.findMigrations(directionUp)
 	assert.Contains(t, err.Error(), "are duplicated")
+	os.Remove(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
 
-	os.Rename("test_migrations/20180918200632.duplicate2.up.sql", "./20180918200632.duplicate2.up.sql")
-	defer os.Rename("./20180918200632.duplicate2.up.sql", "test_migrations/20180918200632.duplicate2.up.sql")
 	migrations, err := m.findMigrations(directionUp)
 	require.NoError(t, err)
 	assert.Len(t, migrations, 3)
@@ -100,8 +103,6 @@ func Test_Migrator_findMigrations(t *testing.T) {
 
 func Test_Migrator_unappliedMigrations(t *testing.T) {
 	os.Remove("test.db")
-	os.Rename("test_migrations/20180918200632.duplicate2.up.sql", "./20180918200632.duplicate2.up.sql")
-	defer os.Rename("./20180918200632.duplicate2.up.sql", "test_migrations/20180918200632.duplicate2.up.sql")
 	defer os.Remove("test.db")
 
 	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
@@ -184,9 +185,6 @@ func Test_Migrator_run(t *testing.T) {
 
 func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	os.Remove("test.db")
-
-	os.Rename("test_migrations/20180918200632.duplicate2.up.sql", "./20180918200632.duplicate2.up.sql")
-	defer os.Rename("./20180918200632.duplicate2.up.sql", "test_migrations/20180918200632.duplicate2.up.sql")
 
 	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
 	defer m.Close()
@@ -280,8 +278,6 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 
 func Test_Migrator_NotificationChannels(t *testing.T) {
 	os.Remove("test.db")
-	os.Rename("test_migrations/20180918200632.duplicate2.up.sql", "./20180918200632.duplicate2.up.sql")
-	defer os.Rename("./20180918200632.duplicate2.up.sql", "test_migrations/20180918200632.duplicate2.up.sql")
 	defer os.Remove("test.db")
 
 	done := make(chan struct{})
