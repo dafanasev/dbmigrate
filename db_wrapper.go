@@ -16,15 +16,15 @@ var (
 )
 
 type dbWrapper struct {
-	settings *Settings
-	db       *sql.DB
+	*Settings
+	db *sql.DB
 	provider
 	placeholdersProvider
 }
 
 func newDBWrapper(settings *Settings, provider provider) *dbWrapper {
 	w := &dbWrapper{
-		settings: settings,
+		Settings: settings,
 		provider: provider,
 	}
 	if pp, ok := w.provider.(placeholdersProvider); ok {
@@ -35,7 +35,7 @@ func newDBWrapper(settings *Settings, provider provider) *dbWrapper {
 }
 
 func (w *dbWrapper) open() error {
-	dsn, err := w.provider.dsn(w.settings)
+	dsn, err := w.provider.dsn(w.Settings)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (w *dbWrapper) setPlaceholders(s string) string {
 
 func (w *dbWrapper) hasMigrationsTable() (bool, error) {
 	var table string
-	err := w.db.QueryRow(w.setPlaceholders(w.provider.hasTableQuery()), w.settings.MigrationsTable).Scan(&table)
+	err := w.db.QueryRow(w.setPlaceholders(w.provider.hasTableQuery()), w.MigrationsTable).Scan(&table)
 	if err == sql.ErrNoRows {
 		return false, nil
 	}
@@ -76,7 +76,7 @@ func (w *dbWrapper) hasMigrationsTable() (bool, error) {
 }
 
 func (w *dbWrapper) createMigrationsTable() error {
-	_, err := w.db.Exec(fmt.Sprintf("CREATE TABLE %s (version VARCHAR(14) NOT NULL, applied_at VARCHAR(14) NOT NULL, PRIMARY KEY(version));", w.settings.MigrationsTable))
+	_, err := w.db.Exec(fmt.Sprintf("CREATE TABLE %s (version VARCHAR(14) NOT NULL, applied_at VARCHAR(14) NOT NULL, PRIMARY KEY(version));", w.MigrationsTable))
 	if err != nil {
 		return errors.Wrap(err, "can't create migrations table")
 	}
@@ -97,7 +97,7 @@ func (w *dbWrapper) lastMigrationAppliedAt() (time.Time, error) {
 
 func (w *dbWrapper) lastMigrationAttribute(attr string) (time.Time, error) {
 	var result string
-	err := w.db.QueryRow(fmt.Sprintf("SELECT %s FROM %s ORDER BY version DESC LIMIT 1", attr, w.settings.MigrationsTable)).Scan(&result)
+	err := w.db.QueryRow(fmt.Sprintf("SELECT %s FROM %s ORDER BY version DESC LIMIT 1", attr, w.MigrationsTable)).Scan(&result)
 	if err == sql.ErrNoRows {
 		return time.Time{}, nil
 	}
@@ -109,7 +109,7 @@ func (w *dbWrapper) lastMigrationAttribute(attr string) (time.Time, error) {
 }
 
 func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, error) {
-	rows, err := w.db.Query(fmt.Sprintf("SELECT version FROM %s ORDER BY version %s", w.settings.MigrationsTable, order))
+	rows, err := w.db.Query(fmt.Sprintf("SELECT version FROM %s ORDER BY version %s", w.MigrationsTable, order))
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
 	}
@@ -129,7 +129,7 @@ func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, erro
 }
 
 func (w *dbWrapper) insertMigrationTimestamp(ts time.Time, appliedAtTs time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("INSERT INTO %s (version, applied_at) VALUES (?, ?)", w.settings.MigrationsTable)), ts.UTC().Format(timestampFormat), appliedAtTs.UTC().Format(timestampFormat))
+	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("INSERT INTO %s (version, applied_at) VALUES (?, ?)", w.MigrationsTable)), ts.UTC().Format(timestampFormat), appliedAtTs.UTC().Format(timestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't insert migration")
 	}
@@ -149,7 +149,7 @@ func (w *dbWrapper) countMigrationsInLastBatch() (int, error) {
 }
 
 func (w *dbWrapper) deleteMigrationTimestamp(ts time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("DELETE FROM %s WHERE version = ?", w.settings.MigrationsTable)), ts.UTC().Format(timestampFormat))
+	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("DELETE FROM %s WHERE version = ?", w.MigrationsTable)), ts.UTC().Format(timestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't delete migration")
 	}

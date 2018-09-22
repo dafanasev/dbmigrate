@@ -84,7 +84,7 @@ func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, e
 	for _, direction := range []string{"up", "down"} {
 		parts := []string{ts.Format(timestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_")}
 		if isSpecific {
-			parts = append(parts, m.dbWrapper.settings.Driver)
+			parts = append(parts, m.Driver)
 		}
 		parts = append(parts, direction, "sql")
 
@@ -262,7 +262,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 		}
 
 		// Migration that should be run on isSpecific dbWrapper only
-		if migration.driverName != "" && migration.driverName != m.dbWrapper.settings.Driver {
+		if migration.driverName != "" && migration.driverName != m.Driver {
 			return nil
 		}
 
@@ -315,7 +315,7 @@ func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, 
 	files, _ := filepath.Glob(pattern)
 
 	if len(files) == 0 {
-		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", m.MigrationsDir, timestampStr, direction, m.dbWrapper.settings.Driver))
+		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", m.MigrationsDir, timestampStr, direction, m.Driver))
 		files, _ = filepath.Glob(pattern)
 	}
 
