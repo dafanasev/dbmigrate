@@ -16,13 +16,10 @@ import (
 const allSteps = 0
 
 type Migrator struct {
-	// dir holding migrations
-	migrationsDir string
-	// migrations table
-	migrationsTable string
-	// project dir (the one that has migrationsDir as first level subdir)
-	projectDir string
+	*Settings
+	// dbWrapper wraps db ops
 	dbWrapper  *dbWrapper
+	projectDir string
 }
 
 // NewMigrator returns migrator instance
@@ -41,7 +38,7 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 		settings.MigrationsTable = "migrations"
 	}
 
-	m := &Migrator{migrationsDir: settings.MigrationsDir, migrationsTable: settings.MigrationsTable}
+	m := &Migrator{Settings: settings}
 
 	provider, ok := providers[settings.Driver]
 	if !ok {
@@ -92,7 +89,7 @@ func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, e
 		parts = append(parts, direction, "sql")
 
 		fname := strings.Join(parts, ".")
-		fpath := filepath.Join(m.migrationsDir, fname)
+		fpath := filepath.Join(m.MigrationsDir, fname)
 
 		if fileExists(fpath) {
 			return nil, errors.Errorf("migration file %s already exists", fname)
@@ -131,8 +128,7 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 		steps = len(migrations)
 	}
 
-	appliedAt := time.Now()
-	// TODO: think about prints
+	appliedAt := time.Now().UTC()
 	for i, migration := range migrations[:steps] {
 		err = m.run(migration)
 		if err != nil {
@@ -143,6 +139,8 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 		if err != nil {
 			return i, errors.Wrapf(err, "can't insert timestamp for migration %s", migration.HumanName())
 		}
+
+		m.migrationNotification(migration)
 	}
 	return len(migrations[:steps]), nil
 }
@@ -184,12 +182,14 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 		if err != nil {
 			return i, errors.Wrapf(err, "can't delete timestamp %s from db", migration.Timestamp.Format(printTimestampFormat))
 		}
+
+		m.migrationNotification(migration)
 	}
 	return len(migrations), nil
 }
 
 func (m *Migrator) run(migration *Migration) error {
-	fpath := filepath.Join(m.migrationsDir, migration.fileName())
+	fpath := filepath.Join(m.MigrationsDir, migration.fileName())
 
 	query, err := ioutil.ReadFile(fpath)
 	if err != nil {
@@ -224,7 +224,7 @@ func (m *Migrator) LastMigration() (*Migration, error) {
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
 func (m *Migrator) findProjectDir(dir string) (string, error) {
-	if dirExists(filepath.Join(dir, m.migrationsDir)) {
+	if dirExists(filepath.Join(dir, m.MigrationsDir)) {
 		return dir, nil
 	}
 
@@ -238,7 +238,7 @@ func (m *Migrator) findProjectDir(dir string) (string, error) {
 // findMigrations finds all valid migrations in the migrations dir
 func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	var migrations []*Migration
-	migrationsDirPath := filepath.Join(m.projectDir, m.migrationsDir)
+	migrationsDirPath := filepath.Join(m.projectDir, m.MigrationsDir)
 
 	filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -311,11 +311,11 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, error) {
 	timestampStr := ts.Format(timestampFormat)
 
-	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", m.migrationsDir, timestampStr, direction))
+	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", m.MigrationsDir, timestampStr, direction))
 	files, _ := filepath.Glob(pattern)
 
 	if len(files) == 0 {
-		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", m.migrationsDir, timestampStr, direction, m.dbWrapper.settings.Driver))
+		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", m.MigrationsDir, timestampStr, direction, m.dbWrapper.settings.Driver))
 		files, _ = filepath.Glob(pattern)
 	}
 
@@ -332,4 +332,16 @@ func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, 
 	}
 
 	return migration, nil
+}
+
+func (m *Migrator) migrationNotification(migration *Migration) {
+	if m.MigrationsCh != nil {
+		m.MigrationsCh <- migration
+	}
+}
+
+func (m *Migrator) errorNotification(err error) {
+	if m.ErrorsCh != nil {
+		m.ErrorsCh <- err
+	}
 }

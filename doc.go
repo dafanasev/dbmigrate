@@ -9,7 +9,7 @@ package migrate
 	* use as library +
 	* or CLI tool
 	* migrations generator +
-	* printing progress (using migration and error channels)
+	* printing progress (using migration and error channels) +
 	* option to return error or skip step on rollback and down migration is not exist or empty
 	* option to return error on subfolder or wrong file name in the migrations folder
 	* policies when new migration arrived that has earlier Timestamp when existing - rollback to this migration or not

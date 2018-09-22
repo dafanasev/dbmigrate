@@ -28,8 +28,8 @@ func Test_NewMigrator(t *testing.T) {
 	s.Driver = "sqlite"
 	m, err = NewMigrator(s)
 	require.NoError(t, err)
-	assert.Equal(t, "migrations", m.migrationsDir)
-	assert.Equal(t, "migrations", m.migrationsTable)
+	assert.Equal(t, "migrations", m.MigrationsDir)
+	assert.Equal(t, "migrations", m.MigrationsTable)
 	projectDir, _ := os.Getwd()
 	assert.Equal(t, projectDir, m.projectDir)
 	assert.Equal(t, "sqlite3", m.dbWrapper.driverName())
@@ -138,7 +138,7 @@ func Test_Migrator_findProjectDir(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, wd, projectDir)
 
-	m.migrationsDir = "migrationsss"
+	m.MigrationsDir = "migrationsss"
 	_, err = m.findProjectDir(wd)
 	assert.EqualError(t, err, "project dir not found")
 }
@@ -266,14 +266,38 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 				descrPart = "test_specific_migration"
 			}
 			assert.Contains(t, fname, descrPart)
-			assert.True(t, fileExists(filepath.Join(m.migrationsDir, fname)))
+			assert.True(t, fileExists(filepath.Join(m.MigrationsDir, fname)))
 		}
 
 		_, err = m.GenerateMigration(data.descr, data.isSpecific)
 		assert.Contains(t, err.Error(), "already exists")
 
 		for _, fname := range fnames {
-			os.Remove(filepath.Join(m.migrationsDir, fname))
+			os.Remove(filepath.Join(m.MigrationsDir, fname))
 		}
 	}
+}
+
+func Test_Migrator_NotificationChannels(t *testing.T) {
+	os.Remove("test.db")
+	os.Rename("test_migrations/20180918200632.duplicate2.up.sql", "./20180918200632.duplicate2.up.sql")
+	defer os.Rename("./20180918200632.duplicate2.up.sql", "test_migrations/20180918200632.duplicate2.up.sql")
+	defer os.Remove("test.db")
+
+	done := make(chan struct{})
+	migrationsCh := make(chan *Migration)
+
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations", MigrationsCh: migrationsCh})
+	defer m.Close()
+
+	go func() {
+		migration := <-migrationsCh
+		assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), migration.Timestamp)
+		done <- struct{}{}
+	}()
+
+	n, err := m.UpSteps(1)
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+	<-done
 }
