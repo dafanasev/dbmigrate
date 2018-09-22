@@ -11,8 +11,9 @@ import (
 
 // Migration holds info about Migration
 type Migration struct {
-	// Timestamp when the migration was created
-	Timestamp  time.Time
+	// Version when the migration was created
+	Version    time.Time
+	AppliedAt  time.Time
 	Name       string
 	direction  Direction
 	driverName string
@@ -22,10 +23,10 @@ type byTimestamp []*Migration
 
 func (bts byTimestamp) Len() int           { return len(bts) }
 func (bts byTimestamp) Swap(i, j int)      { bts[i], bts[j] = bts[j], bts[i] }
-func (bts byTimestamp) Less(i, j int) bool { return bts[i].Timestamp.Unix() < bts[j].Timestamp.Unix() }
+func (bts byTimestamp) Less(i, j int) bool { return bts[i].Version.Unix() < bts[j].Version.Unix() }
 
 func (m *Migration) fileName() string {
-	parts := []string{m.Timestamp.Format(timestampFormat), m.Name, m.direction.String()}
+	parts := []string{m.Version.Format(timestampFormat), m.Name, m.direction.String()}
 	if m.driverName != "" {
 		parts = append(parts, m.driverName)
 	}
@@ -35,7 +36,7 @@ func (m *Migration) fileName() string {
 }
 
 func (m *Migration) HumanName() string {
-	return fmt.Sprintf("%s %s", m.Timestamp.Format(printTimestampFormat), m.Name)
+	return fmt.Sprintf("%s %s", m.Version.Format(printTimestampFormat), m.Name)
 }
 
 func migrationFromFileName(fname string) (*Migration, error) {
@@ -69,5 +70,5 @@ func migrationFromFileName(fname string) (*Migration, error) {
 		driver = strings.ToLower(parts[3])
 	}
 
-	return &Migration{Timestamp: ts, Name: name, direction: direction, driverName: driver}, nil
+	return &Migration{Version: ts, Name: name, direction: direction, driverName: driver}, nil
 }

@@ -3,7 +3,6 @@ package migrate
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -20,6 +19,10 @@ type dbWrapper struct {
 	db *sql.DB
 	provider
 	placeholdersProvider
+}
+
+type executor interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
 func newDBWrapper(settings *Settings, provider provider) *dbWrapper {
@@ -128,11 +131,16 @@ func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, erro
 	return tss, nil
 }
 
-func (w *dbWrapper) insertMigrationTimestamp(ts time.Time, appliedAtTs time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("INSERT INTO %s (version, applied_at) VALUES (?, ?)", w.MigrationsTable)), ts.UTC().Format(timestampFormat), appliedAtTs.UTC().Format(timestampFormat))
+func (w *dbWrapper) insertMigrationVersion(ts time.Time, appliedAtTs time.Time, executor executor) error {
+	if executor == nil {
+		executor = w.db
+	}
+
+	_, err := executor.Exec(w.setPlaceholders(fmt.Sprintf("INSERT INTO %s (version, applied_at) VALUES (?, ?)", w.MigrationsTable)), ts.UTC().Format(timestampFormat), appliedAtTs.UTC().Format(timestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't insert migration")
 	}
+
 	return nil
 }
 
@@ -145,22 +153,28 @@ func (w *dbWrapper) countMigrationsInLastBatch() (int, error) {
 	if err != nil {
 		return 0, errors.Wrapf(err, "can't count migrations for last batch")
 	}
+
 	return count, nil
 }
 
-func (w *dbWrapper) deleteMigrationTimestamp(ts time.Time) error {
-	_, err := w.db.Exec(w.setPlaceholders(fmt.Sprintf("DELETE FROM %s WHERE version = ?", w.MigrationsTable)), ts.UTC().Format(timestampFormat))
+func (w *dbWrapper) deleteMigrationVersion(ts time.Time, executor executor) error {
+	if executor == nil {
+		executor = w.db
+	}
+
+	_, err := executor.Exec(w.setPlaceholders(fmt.Sprintf("DELETE FROM %s WHERE version = ?", w.MigrationsTable)), ts.UTC().Format(timestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't delete migration")
 	}
+
 	return nil
 }
 
-func (w *dbWrapper) execQuery(query string) error {
+func (w *dbWrapper) execMigrationQueries(query string, afterFunc func(tx *sql.Tx) error) error {
 	// using transactions, although only postgres supports supports DDL ones
 	tx, err := w.db.Begin()
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "can't begin transaction"))
+		return errors.Wrap(err, "can't begin transaction")
 	}
 
 	// split queries, because mysql driver can't exec multiple queries at once
@@ -168,12 +182,18 @@ func (w *dbWrapper) execQuery(query string) error {
 	for _, q := range queries {
 		q := strings.TrimSpace(q)
 		if q != "" {
-			_, err = tx.Exec(q + ";")
+			_, err := tx.Exec(q + ";")
 			if err != nil {
 				tx.Rollback()
 				return errors.Wrapf(err, "can't execute query %s", q)
 			}
 		}
+	}
+
+	err = afterFunc(tx)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	err = tx.Commit()

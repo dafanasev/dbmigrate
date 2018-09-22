@@ -1,6 +1,7 @@
 package migrate
 
 import (
+	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -132,14 +133,10 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 
 	appliedAt := time.Now().UTC()
 	for i, migration := range migrations[:steps] {
+		migration.AppliedAt = appliedAt
 		err = m.run(migration)
 		if err != nil {
 			return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
-		}
-
-		err = m.dbWrapper.insertMigrationTimestamp(migration.Timestamp, appliedAt)
-		if err != nil {
-			return i, errors.Wrapf(err, "can't insert timestamp for migration %s", migration.HumanName())
 		}
 	}
 	return len(migrations[:steps]), nil
@@ -184,10 +181,6 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 		if err != nil {
 			return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
 		}
-		err := m.dbWrapper.deleteMigrationTimestamp(migration.Timestamp)
-		if err != nil {
-			return i, errors.Wrapf(err, "can't delete timestamp %s from db", migration.Timestamp.Format(printTimestampFormat))
-		}
 	}
 	return len(migrations), nil
 }
@@ -200,21 +193,40 @@ func (m *Migrator) run(migration *Migration) error {
 		return errors.Wrapf(err, "can't read file for migration %s", migration.HumanName())
 	}
 
-	if strings.TrimSpace(string(query)) != "" {
-		err = m.dbWrapper.execQuery(string(query))
-		if err != nil {
-			return errors.Wrapf(err, "can't exec query for migration %s", migration.HumanName())
-		}
-		if m.MigrationsCh != nil {
-			m.MigrationsCh <- migration
-		}
-	} else {
+	if strings.TrimSpace(string(query)) == "" {
 		if migration.direction == directionUp || (migration.direction == directionDown && !m.AllowMissingDowns) {
 			return ErrEmptyQuery
 		}
 		if m.ErrorsCh != nil {
 			m.ErrorsCh <- ErrEmptyQuery
 		}
+		return nil
+	}
+
+	afterFunc := func(tx *sql.Tx) error {
+		err = m.dbWrapper.insertMigrationVersion(migration.Version, migration.AppliedAt, tx)
+		if err != nil {
+			return errors.Wrapf(err, "can't insert timestamp for migration %s", migration.HumanName())
+		}
+		return nil
+	}
+	if migration.direction == directionDown {
+		afterFunc = func(tx *sql.Tx) error {
+			err := m.dbWrapper.deleteMigrationVersion(migration.Version, tx)
+			if err != nil {
+				return errors.Wrapf(err, "can't delete timestamp %s from db", migration.Version.Format(printTimestampFormat))
+			}
+			return nil
+		}
+	}
+
+	err = m.dbWrapper.execMigrationQueries(string(query), afterFunc)
+	if err != nil {
+		return errors.Wrapf(err, "can't exec query for migration %s", migration.HumanName())
+	}
+
+	if m.MigrationsCh != nil {
+		m.MigrationsCh <- migration
 	}
 
 	return nil
@@ -288,8 +300,8 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 
 	sort.Sort(byTimestamp(migrations))
 	for i := 0; i < len(migrations)-1; i++ {
-		if migrations[i].Timestamp == migrations[i+1].Timestamp {
-			return nil, errors.Errorf("migrations with %s are duplicated", migrations[i].Timestamp.Format(printTimestampFormat))
+		if migrations[i].Version == migrations[i+1].Version {
+			return nil, errors.Errorf("migrations with %s are duplicated", migrations[i].Version.Format(printTimestampFormat))
 		}
 	}
 
@@ -311,7 +323,7 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 	for _, m := range migrations {
 		found := false
 		for _, ts := range appliedMigrationsTimestamps {
-			if m.Timestamp == ts {
+			if m.Version == ts {
 				found = true
 				break
 			}

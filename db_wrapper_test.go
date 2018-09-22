@@ -1,6 +1,7 @@
 package migrate
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -78,7 +79,7 @@ func Test_dbWrapper(t *testing.T) {
 		baseTs := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
 		now := time.Now().UTC().Truncate(time.Second)
 		for n := 0; n < 2; n++ {
-			err = w.insertMigrationTimestamp(baseTs.Add(time.Duration(n)*time.Second), now)
+			err = w.insertMigrationVersion(baseTs.Add(time.Duration(n)*time.Second), now, nil)
 			assert.NoError(t, err)
 		}
 
@@ -102,7 +103,7 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time{baseTs, baseTs.Add(time.Second)}, tss)
 
-		err = w.deleteMigrationTimestamp(baseTs.Add(time.Second))
+		err = w.deleteMigrationVersion(baseTs.Add(time.Second), nil)
 		assert.NoError(t, err)
 
 		ts, err = w.lastMigrationTimestamp()
@@ -116,7 +117,8 @@ func Test_dbWrapper(t *testing.T) {
 	}
 }
 
-func Test_dbWrapper_execQuery(t *testing.T) {
+func Test_dbWrapper_execMigrationQueries(t *testing.T) {
+
 	for driverName, provider := range providers {
 		s := &Settings{Driver: driverName, DB: "migrate_test", User: "migrate", Passwd: "mysecretpassword", MigrationsTable: "migrations"}
 		if driverName == "postgres" {
@@ -129,15 +131,19 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 		w := newDBWrapper(s, provider)
 		w.open()
 
-		// wrong one command querie
-		err := w.execQuery("CREATE TABLE posts ERROR title VARCHAR(255) NOT NULL, PRIMARY KEY(title));")
+		afterFunc := func(tx *sql.Tx) error {
+			return nil
+		}
+
+		// wrong one command query
+		err := w.execMigrationQueries("CREATE TABLE posts ERROR title VARCHAR(255) NOT NULL, PRIMARY KEY(title));", afterFunc)
 		assert.Error(t, err)
 		tableExists, _ := w.hasMigrationsTable()
 		assert.False(t, tableExists)
 
 		// right one command query
 		query := "CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));"
-		err = w.execQuery(query)
+		err = w.execMigrationQueries(query, afterFunc)
 		assert.NoError(t, err)
 		var table string
 		err = w.db.QueryRow(w.setPlaceholders(w.provider.hasTableQuery()), "posts").Scan(&table)
@@ -151,7 +157,7 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 			ALTER TABLE posts ADD content TEXT;
 			INSERT INTO posts (title, content) VALUES ('First post', 'And its content');
 		`
-		err = w.execQuery(query)
+		err = w.execMigrationQueries(query, afterFunc)
 		assert.NoError(t, err)
 		var title string
 		err = w.db.QueryRow("SELECT title FROM posts LIMIT 1").Scan(&title)
@@ -166,7 +172,7 @@ func Test_dbWrapper_execQuery(t *testing.T) {
 			ERROR;
 			ALTER TABLE posts ADD content TEXT;
 		`
-		err = w.execQuery(query)
+		err = w.execMigrationQueries(query, afterFunc)
 		assert.Error(t, err)
 		title = ""
 		err = w.db.QueryRow("SELECT title FROM posts LIMIT 1").Scan(&title)

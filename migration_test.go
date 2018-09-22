@@ -12,14 +12,14 @@ import (
 func Test_byTimestamp(t *testing.T) {
 	ts1 := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
 	ts2 := ts1.Add(time.Second)
-	migrations := []*Migration{{Timestamp: ts2}, {Timestamp: ts1}}
+	migrations := []*Migration{{Version: ts2}, {Version: ts1}}
 	sort.Sort(byTimestamp(migrations))
-	assert.Equal(t, []*Migration{{Timestamp: ts1}, {Timestamp: ts2}}, migrations)
+	assert.Equal(t, []*Migration{{Version: ts1}, {Version: ts2}}, migrations)
 }
 
 func Test_Migration_fileName(t *testing.T) {
 	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
-	m := &Migration{Timestamp: ts, Name: "test_migration", direction: directionUp}
+	m := &Migration{Version: ts, Name: "test_migration", direction: directionUp}
 	assert.Equal(t, "20100607080910.test_migration.up.sql", m.fileName())
 
 	m.driverName = "postgres"
@@ -28,7 +28,7 @@ func Test_Migration_fileName(t *testing.T) {
 
 func Test_Migration_HumanName(t *testing.T) {
 	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
-	m := &Migration{Timestamp: ts, Name: "test_migration"}
+	m := &Migration{Version: ts, Name: "test_migration"}
 	assert.Equal(t, "2010.06.07 08:09:10 test_migration", m.HumanName())
 }
 
@@ -57,7 +57,7 @@ func Test_migrationFromFileName(t *testing.T) {
 		m, err := migrationFromFileName(fname)
 		assert.NoError(t, err)
 		ts := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
-		assert.Equal(t, ts, m.Timestamp)
+		assert.Equal(t, ts, m.Version)
 		parts := strings.Split(fname, ".")
 		assert.Equal(t, parts[1], m.Name)
 		assert.Equal(t, directionUp, m.direction)

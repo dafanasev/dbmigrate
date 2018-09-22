@@ -74,7 +74,7 @@ func Test_Migrator_getMigration(t *testing.T) {
 	migration, err := m.getMigration(ts, directionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected := &Migration{Timestamp: ts, Name: "correct", direction: directionUp}
+	expected := &Migration{Version: ts, Name: "correct", direction: directionUp}
 	assert.Equal(t, expected, migration)
 
 	// correct for the isSpecific driver
@@ -82,7 +82,7 @@ func Test_Migrator_getMigration(t *testing.T) {
 	migration, err = m.getMigration(ts, directionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected = &Migration{Timestamp: ts, Name: "specific_driver_correct", direction: directionUp, driverName: "sqlite"}
+	expected = &Migration{Version: ts, Name: "specific_driver_correct", direction: directionUp, driverName: "sqlite"}
 	assert.Equal(t, expected, migration)
 }
 
@@ -116,11 +116,11 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 
 		// we've got migrations we were actually needed
 		for j, um := range unappliedMigrations {
-			assert.Equal(t, um.Timestamp, migrations[i+j].Timestamp)
+			assert.Equal(t, um.Version, migrations[i+j].Version)
 		}
 
 		if i < 3 {
-			m.dbWrapper.insertMigrationTimestamp(migrations[i].Timestamp, time.Now())
+			m.dbWrapper.insertMigrationVersion(migrations[i].Version, time.Now(), nil)
 		}
 	}
 }
@@ -154,13 +154,13 @@ func TestMigrator_Migrator_LastMigration(t *testing.T) {
 	assert.Nil(t, migration)
 
 	ts := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
-	_ = m.dbWrapper.insertMigrationTimestamp(ts, time.Now())
+	_ = m.dbWrapper.insertMigrationVersion(ts, time.Now(), nil)
 	migration, err = m.LastMigration()
 	require.NoError(t, err)
-	assert.Equal(t, ts, migration.Timestamp)
+	assert.Equal(t, ts, migration.Version)
 
 	ts = time.Date(2018, 9, 18, 22, 2, 34, 0, time.UTC)
-	_ = m.dbWrapper.insertMigrationTimestamp(ts, time.Now())
+	_ = m.dbWrapper.insertMigrationVersion(ts, time.Now(), nil)
 	_, err = m.LastMigration()
 	assert.Contains(t, err.Error(), "can't get last migration with timestamp")
 }
@@ -185,7 +185,7 @@ func Test_Migrator_run(t *testing.T) {
 
 	go func() {
 		migration := <-migrationsCh
-		assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), migration.Timestamp)
+		assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), migration.Version)
 		done <- struct{}{}
 	}()
 	migration, _ = migrationFromFileName("20180918200453.correct.up.sql")
@@ -235,7 +235,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
 	lm, _ = m.LastMigration()
-	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Timestamp)
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Version)
 
 	os.Rename("test_migrations/20180918200453.correct.down.sql", "./20180918200453.correct.down.sql")
 
@@ -268,7 +268,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	lm, _ = m.LastMigration()
-	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Timestamp)
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
 	n, err = m.DownSteps(2)
 	require.NoError(t, err)
@@ -280,13 +280,13 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 	lm, _ = m.LastMigration()
-	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Timestamp)
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
 
 	n, err = m.DownSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
 	lm, _ = m.LastMigration()
-	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Timestamp)
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
 	n, err = m.Down()
 	require.NoError(t, err)
