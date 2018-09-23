@@ -133,7 +133,7 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 
 	appliedAt := time.Now().UTC()
 	for i, migration := range migrations[:steps] {
-		migration.AppliedAt = appliedAt
+		migration.appliedAt = appliedAt
 		err = m.run(migration)
 		if err != nil {
 			return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
@@ -166,7 +166,7 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 		if err == nil {
 			migrations = append(migrations, migration)
 		} else {
-			err = errors.Wrapf(err, "can't get migration for timestamp %s", ts.Format(printTimestampFormat))
+			err = errors.Wrapf(err, "can't get migration for version %s", ts.Format(printTimestampFormat))
 			if !m.AllowMissingDowns {
 				return 0, err
 			}
@@ -204,9 +204,9 @@ func (m *Migrator) run(migration *Migration) error {
 	}
 
 	afterFunc := func(tx *sql.Tx) error {
-		err = m.dbWrapper.insertMigrationVersion(migration.Version, migration.AppliedAt, tx)
+		err = m.dbWrapper.insertMigrationVersion(migration.Version, migration.appliedAt, tx)
 		if err != nil {
-			return errors.Wrapf(err, "can't insert timestamp for migration %s", migration.HumanName())
+			return errors.Wrapf(err, "can't insert version for migration %s", migration.HumanName())
 		}
 		return nil
 	}
@@ -232,10 +232,10 @@ func (m *Migrator) run(migration *Migration) error {
 	return nil
 }
 
-func (m *Migrator) LastMigration() (*Migration, error) {
-	ts, err := m.dbWrapper.lastMigrationTimestamp()
+func (m *Migrator) LatestVersionMigration() (*Migration, error) {
+	ts, err := m.dbWrapper.latestMigrationVersion()
 	if err != nil {
-		return nil, errors.Wrap(err, "can't get last migration")
+		return nil, errors.Wrap(err, "can't get latest migration")
 	}
 
 	if ts == (time.Time{}) {
@@ -244,7 +244,25 @@ func (m *Migrator) LastMigration() (*Migration, error) {
 
 	migration, err := m.getMigration(ts, directionUp)
 	if err != nil {
-		return nil, errors.Wrapf(err, "can't get last migration with timestamp %s", ts.Format(timestampFormat))
+		return nil, errors.Wrapf(err, "can't get latest migration with version %s", ts.Format(timestampFormat))
+	}
+
+	return migration, nil
+}
+
+func (m *Migrator) LastAppliedAtMigration() (*Migration, error) {
+	ts, err := m.dbWrapper.lastAppliedMigrationVersion()
+	if err != nil {
+		return nil, errors.Wrap(err, "can't get last applied migration")
+	}
+
+	if ts == (time.Time{}) {
+		return nil, nil
+	}
+
+	migration, err := m.getMigration(ts, directionUp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "can't get last applied migration with %s", ts.Format(timestampFormat))
 	}
 
 	return migration, nil
@@ -348,10 +366,10 @@ func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, 
 	}
 
 	if len(files) == 0 {
-		return nil, errors.Errorf("migration %v with timestamp %s does not exist", direction, timestampStr)
+		return nil, errors.Errorf("migration %v with version %s does not exist", direction, timestampStr)
 	}
 	if len(files) > 1 {
-		return nil, errors.Errorf("got %d %v migration with timestamp %s, should be only one", len(files), direction, timestampStr)
+		return nil, errors.Errorf("got %d %v migration with version %s, should be only one", len(files), direction, timestampStr)
 	}
 
 	migration, err := migrationFromFileName(filepath.Base(files[0]))

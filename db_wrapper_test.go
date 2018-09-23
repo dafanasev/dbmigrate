@@ -63,7 +63,7 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, tableExist)
 
-		ts, err := w.lastMigrationTimestamp()
+		ts, err := w.latestMigrationVersion()
 		// no error and null time value means there are no migrations in the table
 		assert.NoError(t, err)
 		assert.Equal(t, time.Time{}, ts)
@@ -83,11 +83,11 @@ func Test_dbWrapper(t *testing.T) {
 			assert.NoError(t, err)
 		}
 
-		ts, err = w.lastMigrationTimestamp()
+		ts, err = w.latestMigrationVersion()
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs.Add(time.Second), ts)
 
-		ts, err = w.lastMigrationAppliedAt()
+		ts, err = w.getAttrOrderedBy("applied_at", "applied_at DESC")
 		assert.NoError(t, err)
 		assert.Equal(t, now, ts)
 
@@ -106,7 +106,7 @@ func Test_dbWrapper(t *testing.T) {
 		err = w.deleteMigrationVersion(baseTs.Add(time.Second), nil)
 		assert.NoError(t, err)
 
-		ts, err = w.lastMigrationTimestamp()
+		ts, err = w.latestMigrationVersion()
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs, ts)
 

@@ -144,25 +144,25 @@ func Test_Migrator_findProjectDir(t *testing.T) {
 	assert.EqualError(t, err, "project dir not found")
 }
 
-func TestMigrator_Migrator_LastMigration(t *testing.T) {
+func TestMigrator_Migrator_LatestVersion(t *testing.T) {
 	os.Remove("test.db")
 	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
 	defer m.Close()
 
-	migration, err := m.LastMigration()
+	migration, err := m.LatestVersionMigration()
 	require.NoError(t, err)
 	assert.Nil(t, migration)
 
 	ts := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
 	_ = m.dbWrapper.insertMigrationVersion(ts, time.Now(), nil)
-	migration, err = m.LastMigration()
+	migration, err = m.LatestVersionMigration()
 	require.NoError(t, err)
 	assert.Equal(t, ts, migration.Version)
 
 	ts = time.Date(2018, 9, 18, 22, 2, 34, 0, time.UTC)
 	_ = m.dbWrapper.insertMigrationVersion(ts, time.Now(), nil)
-	_, err = m.LastMigration()
-	assert.Contains(t, err.Error(), "can't get last migration with timestamp")
+	_, err = m.LatestVersionMigration()
+	assert.Contains(t, err.Error(), "can't get latest migration with version")
 }
 
 func Test_Migrator_run(t *testing.T) {
@@ -222,21 +222,22 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	n, err := m.Down()
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
-	lm, _ := m.LastMigration()
+	lm, _ := m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
 	n, err = m.DownSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
 	n, err = m.UpSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Version)
 
+	// not existing down
 	os.Rename("test_migrations/20180918200453.correct.down.sql", "./20180918200453.correct.down.sql")
 
 	n, err = m.Down()
@@ -257,42 +258,78 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	m.AllowMissingDowns = false
 
 	os.Rename("./20180918200453.correct.down.sql", "test_migrations/20180918200453.correct.down.sql")
+	// END not existing down
 
 	n, err = m.Down()
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
 	n, err = m.UpSteps(2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
 	n, err = m.DownSteps(2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
 	n, err = m.Up()
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
 
 	n, err = m.DownSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
 	n, err = m.Down()
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
-	lm, _ = m.LastMigration()
+	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
+
+	// not successive ups
+	os.Rename("test_migrations/20180918200453.correct.up.sql", "./20180918200453.correct.up.sql")
+	os.Rename("test_migrations/20180918200632.other_correct.up.sql", "./20180918200632.other_correct.up.sql")
+
+	n, err = m.Up()
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+	lm, _ = m.LastAppliedAtMigration()
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
+
+	os.Rename("./20180918200453.correct.up.sql", "test_migrations/20180918200453.correct.up.sql")
+	os.Rename("./20180918200632.other_correct.up.sql", "test_migrations/20180918200632.other_correct.up.sql")
+
+	n, err = m.Up()
+	require.NoError(t, err)
+	assert.Equal(t, 2, n)
+	lm, _ = m.LastAppliedAtMigration()
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
+
+	n, err = m.Down()
+	require.NoError(t, err)
+	assert.Equal(t, 2, n)
+	lm, _ = m.LastAppliedAtMigration()
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
+
+	m.Up()
+	n, err = m.DownSteps(1)
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+	lm, _ = m.LastAppliedAtMigration()
+	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Version)
+
+	// END not successive up
+
 }
 
 func Test_Migrator_GenerateMigration(t *testing.T) {

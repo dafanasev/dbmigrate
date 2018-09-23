@@ -13,8 +13,8 @@ import (
 type Migration struct {
 	// Version when the migration was created
 	Version    time.Time
-	AppliedAt  time.Time
 	Name       string
+	appliedAt  time.Time
 	direction  Direction
 	driverName string
 }
