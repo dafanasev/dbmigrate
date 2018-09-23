@@ -151,7 +151,7 @@ func (m *Migrator) Down() (int, error) {
 }
 
 func (m *Migrator) DownSteps(steps int) (int, error) {
-	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps("DESC")
+	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps("applied_at DESC, version DESC")
 	if err != nil {
 		return 0, errors.Wrap(err, "can't rollback")
 	}
@@ -250,7 +250,7 @@ func (m *Migrator) LatestVersionMigration() (*Migration, error) {
 	return migration, nil
 }
 
-func (m *Migrator) LastAppliedAtMigration() (*Migration, error) {
+func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 	ts, err := m.dbWrapper.lastAppliedMigrationVersion()
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get last applied migration")
@@ -262,7 +262,7 @@ func (m *Migrator) LastAppliedAtMigration() (*Migration, error) {
 
 	migration, err := m.getMigration(ts, directionUp)
 	if err != nil {
-		return nil, errors.Wrapf(err, "can't get last applied migration with %s", ts.Format(timestampFormat))
+		return nil, errors.Wrapf(err, "can't get last applied migration with мукышщт %s", ts.Format(timestampFormat))
 	}
 
 	return migration, nil
@@ -332,7 +332,7 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 		return nil, errors.Wrap(err, "can't get migrations")
 	}
 
-	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps("ASC")
+	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps("version ASC")
 	if err != nil {
 		return nil, err
 	}

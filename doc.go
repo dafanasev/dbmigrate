@@ -10,7 +10,7 @@ package migrate
 	* printing progress (using migration and error channels) +
 	* option to return error or skip step on rollback and down migration is not exist or empty +
 	* move insert/delete versions logic into transaction +
-	* policies when new migration arrived that has earlier Version when existing one - rollback to this migration before migrate new ones or not
+	* rollback in batches, by applied at instead of version +
 	* CLI tool
 	* configuring using flags, yml file or env variables
 	* different environments (e.g. test, dev, prod)

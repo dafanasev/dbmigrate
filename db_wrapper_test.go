@@ -68,7 +68,7 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, time.Time{}, ts)
 
-		tss, err := w.appliedMigrationsTimestamps("DESC")
+		tss, err := w.appliedMigrationsTimestamps("version DESC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time(nil), tss)
 
@@ -95,11 +95,11 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 2, n)
 
-		tss, err = w.appliedMigrationsTimestamps("DESC")
+		tss, err = w.appliedMigrationsTimestamps("version DESC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time{baseTs.Add(time.Second), baseTs}, tss)
 
-		tss, err = w.appliedMigrationsTimestamps("ASC")
+		tss, err = w.appliedMigrationsTimestamps("version ASC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time{baseTs, baseTs.Add(time.Second)}, tss)
 

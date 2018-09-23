@@ -121,7 +121,7 @@ func (w *dbWrapper) getAttrOrderedBy(attr string, order string) (time.Time, erro
 }
 
 func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, error) {
-	rows, err := w.db.Query(fmt.Sprintf("SELECT version FROM %s ORDER BY version %s", w.MigrationsTable, order))
+	rows, err := w.db.Query(fmt.Sprintf("SELECT version FROM %s ORDER BY %s", w.MigrationsTable, order))
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
 	}

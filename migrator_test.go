@@ -303,8 +303,12 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	n, err = m.Up()
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
-	lm, _ = m.LastAppliedAtMigration()
+	lm, _ = m.LastAppliedMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
+	// pretend to travel in time
+	ts := lm.Version.Add(-1 * time.Second)
+	_, err = m.dbWrapper.db.Exec("UPDATE migrations SET applied_at = ?", ts.Format(timestampFormat))
+	require.NoError(t, err)
 
 	os.Rename("./20180918200453.correct.up.sql", "test_migrations/20180918200453.correct.up.sql")
 	os.Rename("./20180918200632.other_correct.up.sql", "test_migrations/20180918200632.other_correct.up.sql")
@@ -312,21 +316,30 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	n, err = m.Up()
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
-	lm, _ = m.LastAppliedAtMigration()
+	lm, _ = m.LastAppliedMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
 	n, err = m.Down()
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
-	lm, _ = m.LastAppliedAtMigration()
+	lm, _ = m.LastAppliedMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
 
 	m.Up()
 	n, err = m.DownSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
-	lm, _ = m.LastAppliedAtMigration()
+	lm, _ = m.LastAppliedMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Version)
+
+	m.Down()
+	m.Up()
+	// from two batches
+	n, err = m.DownSteps(4)
+	require.NoError(t, err)
+	assert.Equal(t, 3, n)
+	lm, _ = m.LastAppliedMigration()
+	assert.Nil(t, lm)
 
 	// END not successive up
 
