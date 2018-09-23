@@ -87,6 +87,9 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, baseTs.Add(time.Second), ts)
 
+		_, err = w.getAttrOrderedBy("error_attr", "error_attr DESC")
+		require.Error(t, err)
+
 		ts, err = w.getAttrOrderedBy("applied_at", "applied_at DESC")
 		assert.NoError(t, err)
 		assert.Equal(t, now, ts)
@@ -94,6 +97,10 @@ func Test_dbWrapper(t *testing.T) {
 		n, err = w.countMigrationsInLastBatch()
 		assert.NoError(t, err)
 		assert.Equal(t, 2, n)
+
+		_, err = w.appliedMigrationsTimestamps("version RASC")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "can't get applied migrations versions")
 
 		tss, err = w.appliedMigrationsTimestamps("version DESC")
 		assert.NoError(t, err)

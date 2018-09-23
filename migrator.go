@@ -262,7 +262,7 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 
 	migration, err := m.getMigration(ts, directionUp)
 	if err != nil {
-		return nil, errors.Wrapf(err, "can't get last applied migration with мукышщт %s", ts.Format(timestampFormat))
+		return nil, errors.Wrapf(err, "can't get last applied migration with version %s", ts.Format(timestampFormat))
 	}
 
 	return migration, nil

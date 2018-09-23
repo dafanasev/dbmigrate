@@ -144,25 +144,44 @@ func Test_Migrator_findProjectDir(t *testing.T) {
 	assert.EqualError(t, err, "project dir not found")
 }
 
-func TestMigrator_Migrator_LatestVersion(t *testing.T) {
+func TestMigrator_Migrator_LatestVersionAndLastAppliedMigration(t *testing.T) {
 	os.Remove("test.db")
 	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
 	defer m.Close()
 
-	migration, err := m.LatestVersionMigration()
+	lvm, err := m.LatestVersionMigration()
 	require.NoError(t, err)
-	assert.Nil(t, migration)
-
-	ts := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
-	_ = m.dbWrapper.insertMigrationVersion(ts, time.Now(), nil)
-	migration, err = m.LatestVersionMigration()
+	assert.Nil(t, lvm)
+	lam, err := m.LastAppliedMigration()
 	require.NoError(t, err)
-	assert.Equal(t, ts, migration.Version)
+	assert.Nil(t, lam)
 
-	ts = time.Date(2018, 9, 18, 22, 2, 34, 0, time.UTC)
-	_ = m.dbWrapper.insertMigrationVersion(ts, time.Now(), nil)
+	ts1 := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
+	ts2 := time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC)
+
+	_ = m.dbWrapper.insertMigrationVersion(ts1, time.Now(), nil)
+	lvm, err = m.LatestVersionMigration()
+	require.NoError(t, err)
+	assert.Equal(t, ts1, lvm.Version)
+	lam, err = m.LastAppliedMigration()
+	require.NoError(t, err)
+	assert.Equal(t, ts1, lam.Version)
+
+	// earlier applied_at
+	_ = m.dbWrapper.insertMigrationVersion(ts2, time.Now().Add(-5*time.Second), nil)
+	lvm, err = m.LatestVersionMigration()
+	require.NoError(t, err)
+	assert.Equal(t, ts2, lvm.Version)
+	lam, err = m.LastAppliedMigration()
+	require.NoError(t, err)
+	assert.Equal(t, ts1, lam.Version)
+
+	// not existing migration
+	_ = m.dbWrapper.insertMigrationVersion(time.Date(2018, 9, 18, 22, 2, 34, 0, time.UTC), time.Now(), nil)
 	_, err = m.LatestVersionMigration()
 	assert.Contains(t, err.Error(), "can't get latest migration with version")
+	_, err = m.LastAppliedMigration()
+	assert.Contains(t, err.Error(), "can't get last applied migration with version")
 }
 
 func Test_Migrator_run(t *testing.T) {
