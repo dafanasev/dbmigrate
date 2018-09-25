@@ -1,4 +1,4 @@
-package migrate
+package dbmigrate
 
 var providers = make(map[string]provider)
 
