@@ -34,9 +34,6 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 		return nil, errors.New("database name not specified")
 	}
 
-	if settings.MigrationsDir == "" {
-		settings.MigrationsDir = "migrations"
-	}
 	if settings.MigrationsTable == "" {
 		settings.MigrationsTable = "migrations"
 	}
@@ -92,7 +89,7 @@ func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, e
 		parts = append(parts, direction, "sql")
 
 		fname := strings.Join(parts, ".")
-		fpath := filepath.Join(m.MigrationsDir, fname)
+		fpath := filepath.Join(migrationsDir, fname)
 
 		if fileExists(fpath) {
 			return nil, errors.Errorf("migration file %s already exists", fname)
@@ -186,7 +183,7 @@ func (m *Migrator) DownSteps(steps int) (int, error) {
 }
 
 func (m *Migrator) run(migration *Migration) error {
-	fpath := filepath.Join(m.MigrationsDir, migration.fileName())
+	fpath := filepath.Join(migrationsDir, migration.fileName())
 
 	query, err := ioutil.ReadFile(fpath)
 	if err != nil {
@@ -270,7 +267,7 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 
 // findProjectDir recursively find project dir (the one that has migrations subdir)
 func (m *Migrator) findProjectDir(dir string) (string, error) {
-	if dirExists(filepath.Join(dir, m.MigrationsDir)) {
+	if dirExists(filepath.Join(dir, migrationsDir)) {
 		return dir, nil
 	}
 
@@ -284,7 +281,7 @@ func (m *Migrator) findProjectDir(dir string) (string, error) {
 // findMigrations finds all valid migrations in the migrations dir
 func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	var migrations []*Migration
-	migrationsDirPath := filepath.Join(m.projectDir, m.MigrationsDir)
+	migrationsDirPath := filepath.Join(m.projectDir, migrationsDir)
 
 	filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -357,11 +354,11 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, error) {
 	timestampStr := ts.Format(timestampFormat)
 
-	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", m.MigrationsDir, timestampStr, direction))
+	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", migrationsDir, timestampStr, direction))
 	files, _ := filepath.Glob(pattern)
 
 	if len(files) == 0 {
-		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", m.MigrationsDir, timestampStr, direction, m.Driver))
+		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", migrationsDir, timestampStr, direction, m.Driver))
 		files, _ = filepath.Glob(pattern)
 	}
 

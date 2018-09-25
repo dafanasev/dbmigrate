@@ -28,7 +28,7 @@ func Test_NewMigrator(t *testing.T) {
 	s.Driver = "sqlite"
 	m, err = NewMigrator(s)
 	require.NoError(t, err)
-	assert.Equal(t, "migrations", m.MigrationsDir)
+	assert.Equal(t, "dbmigrations", migrationsDir)
 	assert.Equal(t, "migrations", m.MigrationsTable)
 	projectDir, _ := os.Getwd()
 	assert.Equal(t, projectDir, m.projectDir)
@@ -45,19 +45,19 @@ func Test_Migrator_Close(t *testing.T) {
 
 func Test_Migrator_getMigration(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
 	defer m.Close()
 
-	os.Create(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
-	defer os.Remove(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
+	os.Create(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
+	defer os.Remove(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
 
 	// does not exist at all
 	_, err := m.getMigration(time.Date(2018, 9, 10, 11, 12, 13, 0, time.UTC), directionUp)
 	assert.Contains(t, err.Error(), "does not exist")
 
 	// does not exist for needed direction
-	os.Rename("test_migrations/20180918200453.correct.down.sql", "./20180918200453.correct.down.sql")
-	defer os.Rename("./20180918200453.correct.down.sql", "test_migrations/20180918200453.correct.down.sql")
+	os.Rename(filepath.Join(migrationsDir, "20180918200453.correct.down.sql"), "20180918200453.correct.down.sql")
+	defer os.Rename("20180918200453.correct.down.sql", filepath.Join(migrationsDir, "20180918200453.correct.down.sql"))
 	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), directionDown)
 	assert.Contains(t, err.Error(), "does not exist")
 
@@ -88,13 +88,13 @@ func Test_Migrator_getMigration(t *testing.T) {
 
 func Test_Migrator_findMigrations(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
 	defer m.Close()
 
-	os.Create(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
+	os.Create(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
 	_, err := m.findMigrations(directionUp)
 	assert.Contains(t, err.Error(), "are duplicated")
-	os.Remove(filepath.Join("test_migrations", "20180918200632.duplicate.up.sql"))
+	os.Remove(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
 
 	migrations, err := m.findMigrations(directionUp)
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 	os.Remove("test.db")
 	defer os.Remove("test.db")
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
 	defer m.Close()
 	migrations, _ := m.findMigrations(directionUp)
 
@@ -127,7 +127,7 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 
 func Test_Migrator_findProjectDir(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
 	defer m.Close()
 
 	wd, _ := os.Getwd()
@@ -139,14 +139,15 @@ func Test_Migrator_findProjectDir(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, wd, projectDir)
 
-	m.MigrationsDir = "migrationsss"
+	os.Rename(migrationsDir, "!"+migrationsDir)
 	_, err = m.findProjectDir(wd)
 	assert.EqualError(t, err, "project dir not found")
+	os.Rename("!"+migrationsDir, migrationsDir)
 }
 
 func TestMigrator_Migrator_LatestVersionAndLastAppliedMigration(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
 	defer m.Close()
 
 	lvm, err := m.LatestVersionMigration()
@@ -191,7 +192,7 @@ func Test_Migrator_run(t *testing.T) {
 	errorsCh := make(chan error)
 	done := make(chan struct{})
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations", MigrationsCh: migrationsCh, ErrorsCh: errorsCh})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsCh: migrationsCh, ErrorsCh: errorsCh})
 	defer m.Close()
 
 	migration, _ := migrationFromFileName("20180918100423.incorrect.up.sql")
@@ -235,7 +236,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	errorsCh := make(chan error)
 	done := make(chan struct{})
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations", ErrorsCh: errorsCh})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", ErrorsCh: errorsCh})
 	defer m.Close()
 
 	n, err := m.Down()
@@ -257,7 +258,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Version)
 
 	// not existing down
-	os.Rename("test_migrations/20180918200453.correct.down.sql", "./20180918200453.correct.down.sql")
+	os.Rename(filepath.Join(migrationsDir, "20180918200453.correct.down.sql"), "20180918200453.correct.down.sql")
 
 	n, err = m.Down()
 	assert.Contains(t, err.Error(), "can't get migration for")
@@ -276,7 +277,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	<-done
 	m.AllowMissingDowns = false
 
-	os.Rename("./20180918200453.correct.down.sql", "test_migrations/20180918200453.correct.down.sql")
+	os.Rename("20180918200453.correct.down.sql", filepath.Join(migrationsDir, "20180918200453.correct.down.sql"))
 	// END not existing down
 
 	n, err = m.Down()
@@ -316,8 +317,8 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	assert.Nil(t, lm)
 
 	// not successive ups
-	os.Rename("test_migrations/20180918200453.correct.up.sql", "./20180918200453.correct.up.sql")
-	os.Rename("test_migrations/20180918200632.other_correct.up.sql", "./20180918200632.other_correct.up.sql")
+	os.Rename(filepath.Join(migrationsDir, "20180918200453.correct.up.sql"), "20180918200453.correct.up.sql")
+	os.Rename(filepath.Join(migrationsDir, "/20180918200632.other_correct.up.sql"), "20180918200632.other_correct.up.sql")
 
 	n, err = m.Up()
 	require.NoError(t, err)
@@ -329,8 +330,8 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	_, err = m.dbWrapper.db.Exec("UPDATE migrations SET applied_at = ?", ts.Format(timestampFormat))
 	require.NoError(t, err)
 
-	os.Rename("./20180918200453.correct.up.sql", "test_migrations/20180918200453.correct.up.sql")
-	os.Rename("./20180918200632.other_correct.up.sql", "test_migrations/20180918200632.other_correct.up.sql")
+	os.Rename("20180918200453.correct.up.sql", filepath.Join(migrationsDir, "20180918200453.correct.up.sql"))
+	os.Rename("20180918200632.other_correct.up.sql", filepath.Join(migrationsDir, "20180918200632.other_correct.up.sql"))
 
 	n, err = m.Up()
 	require.NoError(t, err)
@@ -365,7 +366,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 }
 
 func Test_Migrator_GenerateMigration(t *testing.T) {
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsDir: "test_migrations"})
+	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
 	defer m.Close()
 
 	testData := []struct {
@@ -384,14 +385,14 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 				descrPart = "test_specific_migration"
 			}
 			assert.Contains(t, fname, descrPart)
-			assert.True(t, fileExists(filepath.Join(m.MigrationsDir, fname)))
+			assert.True(t, fileExists(filepath.Join(migrationsDir, fname)))
 		}
 
 		_, err = m.GenerateMigration(data.descr, data.isSpecific)
 		assert.Contains(t, err.Error(), "already exists")
 
 		for _, fname := range fnames {
-			os.Remove(filepath.Join(m.MigrationsDir, fname))
+			os.Remove(filepath.Join(migrationsDir, fname))
 		}
 	}
 }

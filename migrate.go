@@ -1,17 +1,19 @@
 package migrate
 
-var timestampFormat = "20060102150405"
-var printTimestampFormat = "2006.01.02 15:04:05"
+const migrationsDir = "dbmigrations"
+
+const (
+	timestampFormat      = "20060102150405"
+	printTimestampFormat = "2006.01.02 15:04:05"
+)
 
 type Settings struct {
-	Driver string
-	DB     string
-	Host   string
-	Port   int
-	User   string
-	Passwd string
-	// MigrationsDir is the dir for migrations
-	MigrationsDir     string
+	Driver            string
+	DB                string
+	Host              string
+	Port              int
+	User              string
+	Passwd            string
 	MigrationsTable   string
 	AllowMissingDowns bool
 	// migrationsCh is the channel for applied migrations
