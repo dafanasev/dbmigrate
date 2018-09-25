@@ -22,7 +22,7 @@ func Test_Migration_fileName(t *testing.T) {
 	m := &Migration{Version: ts, Name: "test_migration", direction: directionUp}
 	assert.Equal(t, "20100607080910.test_migration.up.sql", m.fileName())
 
-	m.driverName = "postgres"
+	m.engine = "postgres"
 	assert.Equal(t, "20100607080910.test_migration.up.postgres.sql", m.fileName())
 }
 
@@ -62,9 +62,9 @@ func Test_migrationFromFileName(t *testing.T) {
 		assert.Equal(t, parts[1], m.Name)
 		assert.Equal(t, directionUp, m.direction)
 		if strings.ToLower(parts[3]) == "sql" {
-			assert.Empty(t, m.driverName)
+			assert.Empty(t, m.engine)
 		} else {
-			assert.Equal(t, strings.ToLower(parts[3]), m.driverName)
+			assert.Equal(t, strings.ToLower(parts[3]), m.engine)
 		}
 	}
 }

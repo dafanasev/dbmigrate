@@ -14,30 +14,30 @@ func Test_NewMigrator(t *testing.T) {
 	os.Remove("test.db")
 	s := &Settings{}
 	m, err := NewMigrator(s)
-	assert.EqualError(t, err, "database driver not specified")
+	assert.EqualError(t, err, "database engine not specified")
 
-	s.Driver = "nosql"
+	s.Engine = "nosql"
 	m, err = NewMigrator(s)
 	assert.EqualError(t, err, "database name not specified")
 
-	s.DB = "test.db"
+	s.Database = "test.db"
 
 	_, err = NewMigrator(s)
-	assert.Contains(t, err.Error(), "unknown database driver")
+	assert.Contains(t, err.Error(), "unknown database engine")
 
-	s.Driver = "sqlite"
+	s.Engine = "sqlite"
 	m, err = NewMigrator(s)
 	require.NoError(t, err)
 	assert.Equal(t, "dbmigrations", migrationsDir)
 	assert.Equal(t, "migrations", m.MigrationsTable)
 	projectDir, _ := os.Getwd()
 	assert.Equal(t, projectDir, m.projectDir)
-	assert.Equal(t, "sqlite3", m.dbWrapper.driverName())
+	assert.Equal(t, "sqlite3", m.dbWrapper.driver())
 	m.Close()
 }
 
 func Test_Migrator_Close(t *testing.T) {
-	m, err := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
+	m, err := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	require.NoError(t, err)
 	err = m.Close()
 	assert.NoError(t, err)
@@ -45,7 +45,7 @@ func Test_Migrator_Close(t *testing.T) {
 
 func Test_Migrator_getMigration(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
 
 	os.Create(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
@@ -61,7 +61,7 @@ func Test_Migrator_getMigration(t *testing.T) {
 	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), directionDown)
 	assert.Contains(t, err.Error(), "does not exist")
 
-	// does not exist for needed driver
+	// does not exist for used engine
 	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 7, 42, 0, time.UTC), directionUp)
 	assert.Contains(t, err.Error(), "does not exist")
 
@@ -69,7 +69,7 @@ func Test_Migrator_getMigration(t *testing.T) {
 	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), directionUp)
 	assert.Contains(t, err.Error(), "should be only one")
 
-	// correct for any driver
+	// correct for any engine
 	ts := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
 	migration, err := m.getMigration(ts, directionUp)
 	require.NoError(t, err)
@@ -77,18 +77,18 @@ func Test_Migrator_getMigration(t *testing.T) {
 	expected := &Migration{Version: ts, Name: "correct", direction: directionUp}
 	assert.Equal(t, expected, migration)
 
-	// correct for the isSpecific driver
+	// correct for the isSpecific engine
 	ts = time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC)
 	migration, err = m.getMigration(ts, directionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected = &Migration{Version: ts, Name: "specific_driver_correct", direction: directionUp, driverName: "sqlite"}
+	expected = &Migration{Version: ts, Name: "specific_engine_correct", direction: directionUp, engine: "sqlite"}
 	assert.Equal(t, expected, migration)
 }
 
 func Test_Migrator_findMigrations(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
 
 	os.Create(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
@@ -105,7 +105,7 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 	os.Remove("test.db")
 	defer os.Remove("test.db")
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
 	migrations, _ := m.findMigrations(directionUp)
 
@@ -127,27 +127,27 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 
 func Test_Migrator_findProjectDir(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
 
 	wd, _ := os.Getwd()
-	projectDir, err := m.findProjectDir(wd)
+	projectDir, err := FindProjectDir(wd)
 	require.NoError(t, err)
 	assert.Equal(t, wd, projectDir)
 
-	projectDir, err = m.findProjectDir(filepath.Join(wd, "cmd"))
+	projectDir, err = FindProjectDir(filepath.Join(wd, "cmd"))
 	require.NoError(t, err)
 	assert.Equal(t, wd, projectDir)
 
 	os.Rename(migrationsDir, "!"+migrationsDir)
-	_, err = m.findProjectDir(wd)
+	_, err = FindProjectDir(wd)
 	assert.EqualError(t, err, "project dir not found")
 	os.Rename("!"+migrationsDir, migrationsDir)
 }
 
 func TestMigrator_Migrator_LatestVersionAndLastAppliedMigration(t *testing.T) {
 	os.Remove("test.db")
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
 
 	lvm, err := m.LatestVersionMigration()
@@ -192,14 +192,14 @@ func Test_Migrator_run(t *testing.T) {
 	errorsCh := make(chan error)
 	done := make(chan struct{})
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", MigrationsCh: migrationsCh, ErrorsCh: errorsCh})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db", MigrationsCh: migrationsCh, ErrorsCh: errorsCh})
 	defer m.Close()
 
 	migration, _ := migrationFromFileName("20180918100423.incorrect.up.sql")
 	err := m.run(migration)
 	assert.Contains(t, err.Error(), "can't read file for migration")
 
-	migration, _ = migrationFromFileName("20180918200742.wrong_driver.up.postgres.sql")
+	migration, _ = migrationFromFileName("20180918200742.wrong_engine.up.postgres.sql")
 	err = m.run(migration)
 	assert.EqualError(t, err, ErrEmptyQuery.Error())
 
@@ -213,7 +213,7 @@ func Test_Migrator_run(t *testing.T) {
 	require.NoError(t, err)
 	<-done
 
-	migration, _ = migrationFromFileName("20180918200742.wrong_driver.down.postgres.sql")
+	migration, _ = migrationFromFileName("20180918200742.wrong_engine.down.postgres.sql")
 	err = m.run(migration)
 	assert.EqualError(t, err, ErrEmptyQuery.Error())
 
@@ -236,7 +236,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	errorsCh := make(chan error)
 	done := make(chan struct{})
 
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db", ErrorsCh: errorsCh})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db", ErrorsCh: errorsCh})
 	defer m.Close()
 
 	n, err := m.Down()
@@ -366,7 +366,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 }
 
 func Test_Migrator_GenerateMigration(t *testing.T) {
-	m, _ := NewMigrator(&Settings{Driver: "sqlite", DB: "test.db"})
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
 
 	testData := []struct {

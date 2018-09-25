@@ -12,8 +12,8 @@ func Test_postgresProviderExist(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func Test_postgresProvider_driverName(t *testing.T) {
-	assert.Equal(t, "postgres", (&postgresProvider{}).driverName())
+func Test_postgresProvider_driver(t *testing.T) {
+	assert.Equal(t, "postgres", (&postgresProvider{}).driver())
 }
 
 func Test_postgresProvider_dsn(t *testing.T) {
@@ -23,7 +23,7 @@ func Test_postgresProvider_dsn(t *testing.T) {
 	_, err := p.dsn(s)
 	assert.EqualError(t, err, errDBNameNotProvided.Error())
 
-	s.DB = "test"
+	s.Database = "test"
 	_, err = p.dsn(s)
 	assert.EqualError(t, err, errUserNotProvided.Error())
 
@@ -32,7 +32,7 @@ func Test_postgresProvider_dsn(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "dbname=test user=root sslmode=disable", dsn)
 
-	s.Passwd = "12345"
+	s.Password = "12345"
 	s.Host = "myhost"
 	s.Port = 5555
 	dsn, err = p.dsn(s)

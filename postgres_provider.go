@@ -16,25 +16,25 @@ type postgresProvider struct {
 	defaultProvider
 }
 
-func (p *postgresProvider) driverName() string {
+func (p *postgresProvider) driver() string {
 	return "postgres"
 }
 
 func (p *postgresProvider) dsn(settings *Settings) (string, error) {
 	var kvs []string
 
-	if settings.DB == "" {
+	if settings.Database == "" {
 		return "", errDBNameNotProvided
 	}
-	kvs = append(kvs, "dbname="+settings.DB)
+	kvs = append(kvs, "dbname="+settings.Database)
 
 	if settings.User == "" {
 		return "", errUserNotProvided
 	}
 	kvs = append(kvs, "user="+settings.User)
 
-	if settings.Passwd != "" {
-		kvs = append(kvs, "password="+settings.Passwd)
+	if settings.Password != "" {
+		kvs = append(kvs, "password="+settings.Password)
 	}
 
 	if settings.Host != "" {

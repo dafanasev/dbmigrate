@@ -27,10 +27,10 @@ type Migrator struct {
 
 // NewMigrator returns migrator instance
 func NewMigrator(settings *Settings) (*Migrator, error) {
-	if settings.Driver == "" {
-		return nil, errors.New("database driver not specified")
+	if settings.Engine == "" {
+		return nil, errors.New("database engine not specified")
 	}
-	if settings.DB == "" {
+	if settings.Database == "" {
 		return nil, errors.New("database name not specified")
 	}
 
@@ -40,9 +40,9 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 
 	m := &Migrator{Settings: settings}
 
-	provider, ok := providers[settings.Driver]
+	provider, ok := providers[settings.Engine]
 	if !ok {
-		return nil, errors.Errorf("unknown database driver %s", settings.Driver)
+		return nil, errors.Errorf("unknown database engine %s", settings.Engine)
 	}
 
 	m.dbWrapper = newDBWrapper(settings, provider)
@@ -67,7 +67,7 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 		return nil, errors.Wrap(err, "can't get working directory")
 	}
 
-	m.projectDir, err = m.findProjectDir(wd)
+	m.projectDir, err = FindProjectDir(wd)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, e
 	for _, direction := range []string{"up", "down"} {
 		parts := []string{ts.Format(timestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_")}
 		if isSpecific {
-			parts = append(parts, m.Driver)
+			parts = append(parts, m.Engine)
 		}
 		parts = append(parts, direction, "sql")
 
@@ -265,19 +265,6 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 	return migration, nil
 }
 
-// findProjectDir recursively find project dir (the one that has migrations subdir)
-func (m *Migrator) findProjectDir(dir string) (string, error) {
-	if dirExists(filepath.Join(dir, migrationsDir)) {
-		return dir, nil
-	}
-
-	if isRootDir(dir) {
-		return "", errors.New("project dir not found")
-	}
-
-	return m.findProjectDir(filepath.Dir(dir))
-}
-
 // findMigrations finds all valid migrations in the migrations dir
 func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	var migrations []*Migration
@@ -305,7 +292,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 		}
 
 		// Migration that should be run on isSpecific dbWrapper only
-		if migration.driverName != "" && migration.driverName != m.Driver {
+		if migration.engine != "" && migration.engine != m.Engine {
 			return nil
 		}
 
@@ -358,7 +345,7 @@ func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, 
 	files, _ := filepath.Glob(pattern)
 
 	if len(files) == 0 {
-		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", migrationsDir, timestampStr, direction, m.Driver))
+		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", migrationsDir, timestampStr, direction, m.Engine))
 		files, _ = filepath.Glob(pattern)
 	}
 

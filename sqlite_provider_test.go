@@ -13,8 +13,8 @@ func Test_sqliteProviderExist(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func Test_sqliteProvider_driverName(t *testing.T) {
-	assert.Equal(t, "sqlite3", (&sqliteProvider{}).driverName())
+func Test_sqliteProvider_driver(t *testing.T) {
+	assert.Equal(t, "sqlite3", (&sqliteProvider{}).driver())
 }
 
 func Test_sqliteProvider_dsn(t *testing.T) {
@@ -25,32 +25,38 @@ func Test_sqliteProvider_dsn(t *testing.T) {
 	assert.EqualError(t, err, errDBNameNotProvided.Error())
 
 	os.Rename(migrationsDir, "!"+migrationsDir)
-	s.DB = "test.db"
+	s.Database = "test.db"
 	_, err = p.dsn(s)
 	assert.Error(t, err)
 
 	os.Rename("!"+migrationsDir, migrationsDir)
 
 	// from project root dir
-	for _, dir := range []string{".", "..", "test", "/some/absolute/path"} {
-		s.DB = filepath.Join(dir, "test.db")
+	for i, dir := range []string{"/some/absolute/path", ".", "..", "test"} {
+		s.Database = filepath.Join(dir, "test.db")
 		dsn, err := p.dsn(s)
 		assert.NoError(t, err)
-		assert.Equal(t, s.DB, dsn)
+		wd, _ := os.Getwd()
+		if i == 0 {
+			assert.Equal(t, s.Database, dsn)
+		} else {
+			assert.Equal(t, filepath.Join(wd, dir, "test.db"), dsn)
+		}
 	}
 
 	// from project subdir
 	wd, _ := os.Getwd()
-	os.Chdir(filepath.Join(wd, "migrations"))
+	os.Chdir(filepath.Join(wd, "dbmigrations"))
 
 	for _, dir := range []string{".", "..", "test"} {
-		s.DB = filepath.Join(dir, "test.db")
+		s.Database = filepath.Join(dir, "test.db")
 		dsn, err := p.dsn(s)
 		assert.NoError(t, err)
-		assert.Equal(t, filepath.Join("..", s.DB), dsn)
+		wd, _ := os.Getwd()
+		assert.Equal(t, filepath.Join(wd, "..", dir, "test.db"), dsn)
 	}
 
-	s.DB = "/some/absolute/path/test.db"
+	s.Database = "/some/absolute/path/test.db"
 	dsn, err := p.dsn(s)
 	assert.NoError(t, err)
 	assert.Equal(t, "/some/absolute/path/test.db", dsn)

@@ -16,33 +16,29 @@ func init() {
 
 type sqliteProvider struct{}
 
-func (p *sqliteProvider) driverName() string {
+func (p *sqliteProvider) driver() string {
 	return "sqlite3"
 }
 
 func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
-	if settings.DB == "" {
+	if settings.Database == "" {
 		return "", errDBNameNotProvided
 	}
 
-	if filepath.IsAbs(settings.DB) {
-		return settings.DB, nil
+	if filepath.IsAbs(settings.Database) {
+		return settings.Database, nil
 	}
 
-	dir, err := os.Getwd()
+	wd, err := os.Getwd()
 	if err != nil {
 		return "", errors.Wrap(err, "can't get working directory")
 	}
-	dbPath := settings.DB
-	for !dirExists(filepath.Join(dir, migrationsDir)) {
-		if isRootDir(dir) {
-			return "", errors.New("project root is not found")
-		}
-		dir = filepath.Dir(dir)
-		dbPath = filepath.FromSlash("../") + dbPath
+	projectDir, err := FindProjectDir(wd)
+	if err != nil {
+		return "", err
 	}
 
-	return dbPath, nil
+	return filepath.Join(projectDir, settings.Database), nil
 }
 
 func (p *sqliteProvider) hasTableQuery() string {

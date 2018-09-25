@@ -15,7 +15,7 @@ type sqlProvider interface {
 }
 
 type provider interface {
-	driverName() string
+	driver() string
 	dsnProvider
 	sqlProvider
 }

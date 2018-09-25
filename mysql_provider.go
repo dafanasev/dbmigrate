@@ -15,12 +15,12 @@ type mysqlProvider struct {
 	defaultProvider
 }
 
-func (p *mysqlProvider) driverName() string {
+func (p *mysqlProvider) driver() string {
 	return "mysql"
 }
 
 func (p *mysqlProvider) dsn(settings *Settings) (string, error) {
-	if settings.DB == "" {
+	if settings.Database == "" {
 		return "", errDBNameNotProvided
 	}
 
@@ -37,5 +37,5 @@ func (p *mysqlProvider) dsn(settings *Settings) (string, error) {
 		port = 3306
 	}
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", settings.User, settings.Passwd, host, port, settings.DB), nil
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", settings.User, settings.Password, host, port, settings.Database), nil
 }

@@ -36,12 +36,12 @@ func Test_dbWrapper_setPlaceholders(t *testing.T) {
 }
 
 func Test_dbWrapper(t *testing.T) {
-	for driverName, provider := range providers {
-		s := &Settings{Driver: driverName, DB: "migrate_test", User: "migrate", Passwd: "mysecretpassword", MigrationsTable: "migrations"}
-		if driverName == "postgres" {
+	for engine, provider := range providers {
+		s := &Settings{Engine: engine, Database: "migrate_test", User: "migrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
+		if engine == "postgres" {
 			s.Port = 5433
 		}
-		if driverName == "mysql" {
+		if engine == "mysql" {
 			s.Port = 3307
 		}
 
@@ -126,12 +126,12 @@ func Test_dbWrapper(t *testing.T) {
 
 func Test_dbWrapper_execMigrationQueries(t *testing.T) {
 
-	for driverName, provider := range providers {
-		s := &Settings{Driver: driverName, DB: "migrate_test", User: "migrate", Passwd: "mysecretpassword", MigrationsTable: "migrations"}
-		if driverName == "postgres" {
+	for engine, provider := range providers {
+		s := &Settings{Engine: engine, Database: "migrate_test", User: "migrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
+		if engine == "postgres" {
 			s.Port = 5433
 		}
-		if driverName == "mysql" {
+		if engine == "mysql" {
 			s.Port = 3307
 		}
 
@@ -183,7 +183,7 @@ func Test_dbWrapper_execMigrationQueries(t *testing.T) {
 		assert.Error(t, err)
 		title = ""
 		err = w.db.QueryRow("SELECT title FROM posts LIMIT 1").Scan(&title)
-		if s.Driver == "mysql" {
+		if s.Engine == "mysql" {
 			// mysql doesn't support DDL, therefore first two statements are not rolled back
 			assert.NoError(t, err)
 			assert.Equal(t, "First post", title)

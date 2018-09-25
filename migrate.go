@@ -1,5 +1,11 @@
 package migrate
 
+import (
+	"path/filepath"
+
+	"github.com/pkg/errors"
+)
+
 const migrationsDir = "dbmigrations"
 
 const (
@@ -8,12 +14,12 @@ const (
 )
 
 type Settings struct {
-	Driver            string
-	DB                string
+	Database          string
+	Engine            string
 	Host              string
 	Port              int
 	User              string
-	Passwd            string
+	Password          string
 	MigrationsTable   string
 	AllowMissingDowns bool
 	// migrationsCh is the channel for applied migrations
@@ -35,4 +41,17 @@ func (d Direction) String() string {
 		return "up"
 	}
 	return "down"
+}
+
+// FindProjectDir recursively find project dir (the one that has migrations subdir)
+func FindProjectDir(fromDir string) (string, error) {
+	if dirExists(filepath.Join(fromDir, migrationsDir)) {
+		return fromDir, nil
+	}
+
+	if isRootDir(fromDir) {
+		return "", errors.New("project dir not found")
+	}
+
+	return FindProjectDir(filepath.Dir(fromDir))
 }

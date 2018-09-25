@@ -12,11 +12,11 @@ import (
 // Migration holds info about Migration
 type Migration struct {
 	// Version when the migration was created
-	Version    time.Time
-	Name       string
-	appliedAt  time.Time
-	direction  Direction
-	driverName string
+	Version   time.Time
+	Name      string
+	appliedAt time.Time
+	direction Direction
+	engine    string
 }
 
 type byTimestamp []*Migration
@@ -27,8 +27,8 @@ func (bts byTimestamp) Less(i, j int) bool { return bts[i].Version.Unix() < bts[
 
 func (m *Migration) fileName() string {
 	parts := []string{m.Version.Format(timestampFormat), m.Name, m.direction.String()}
-	if m.driverName != "" {
-		parts = append(parts, m.driverName)
+	if m.engine != "" {
+		parts = append(parts, m.engine)
 	}
 	parts = append(parts, "sql")
 
@@ -61,14 +61,14 @@ func migrationFromFileName(fname string) (*Migration, error) {
 	}
 
 	// Migration that should be run on isSpecific dbWrapper only
-	var driver string
+	var engine string
 	// 4 for .sql extension
 	if len(parts) > 4 {
 		if _, ok := providers[strings.ToLower(parts[3])]; !ok {
-			return nil, errors.Errorf("%s, driverName is not known", errMsg)
+			return nil, errors.Errorf("%s, engine is not known", errMsg)
 		}
-		driver = strings.ToLower(parts[3])
+		engine = strings.ToLower(parts[3])
 	}
 
-	return &Migration{Version: ts, Name: name, direction: direction, driverName: driver}, nil
+	return &Migration{Version: ts, Name: name, direction: direction, engine: engine}, nil
 }

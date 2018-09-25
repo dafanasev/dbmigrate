@@ -43,7 +43,7 @@ func (w *dbWrapper) open() error {
 		return err
 	}
 
-	w.db, err = sql.Open(w.provider.driverName(), dsn)
+	w.db, err = sql.Open(w.provider.driver(), dsn)
 	if err != nil {
 		return errors.Wrap(err, "can't open database")
 	}
@@ -83,10 +83,6 @@ func (w *dbWrapper) createMigrationsTable() error {
 		"CREATE TABLE %s (version VARCHAR(14) NOT NULL, applied_at VARCHAR(14) NOT NULL, PRIMARY KEY(version));", w.MigrationsTable))
 	if err != nil {
 		return errors.Wrap(err, "can't create migrations table")
-	}
-	_, err = w.db.Exec("CREATE INDEX migrations_applied_at ON migrations (applied_at)")
-	if err != nil {
-		return errors.Wrap(err, "can't create applied_at index on migrations table")
 	}
 	return nil
 }
