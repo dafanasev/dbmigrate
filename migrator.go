@@ -114,11 +114,11 @@ func (m *Migrator) Close() error {
 	return nil
 }
 
-func (m *Migrator) Up() (int, error) {
-	return m.UpSteps(allSteps)
+func (m *Migrator) Migrate() (int, error) {
+	return m.MigrateSteps(allSteps)
 }
 
-func (m *Migrator) UpSteps(steps int) (int, error) {
+func (m *Migrator) MigrateSteps(steps int) (int, error) {
 	migrations, err := m.unappliedMigrations()
 	if err != nil {
 		return 0, errors.Wrap(err, "can't find migrations")
@@ -139,15 +139,15 @@ func (m *Migrator) UpSteps(steps int) (int, error) {
 	return len(migrations[:steps]), nil
 }
 
-func (m *Migrator) Down() (int, error) {
+func (m *Migrator) Rollback() (int, error) {
 	steps, err := m.dbWrapper.countMigrationsInLastBatch()
 	if err != nil {
 		return 0, err
 	}
-	return m.DownSteps(steps)
+	return m.RollbackSteps(steps)
 }
 
-func (m *Migrator) DownSteps(steps int) (int, error) {
+func (m *Migrator) RollbackSteps(steps int) (int, error) {
 	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps("applied_at DESC, version DESC")
 	if err != nil {
 		return 0, errors.Wrap(err, "can't rollback")

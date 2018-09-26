@@ -230,7 +230,7 @@ func Test_Migrator_run(t *testing.T) {
 	<-done
 }
 
-func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
+func Test_Migrator_Migrate_Rollback(t *testing.T) {
 	os.Remove("test.db")
 
 	errorsCh := make(chan error)
@@ -239,19 +239,19 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db", ErrorsCh: errorsCh})
 	defer m.Close()
 
-	n, err := m.Down()
+	n, err := m.Rollback()
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 	lm, _ := m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
-	n, err = m.DownSteps(1)
+	n, err = m.RollbackSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
-	n, err = m.UpSteps(1)
+	n, err = m.MigrateSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
 	lm, _ = m.LatestVersionMigration()
@@ -260,7 +260,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	// not existing down
 	os.Rename(filepath.Join(migrationsDir, "20180918200453.correct.down.sql"), "20180918200453.correct.down.sql")
 
-	n, err = m.Down()
+	n, err = m.Rollback()
 	assert.Contains(t, err.Error(), "can't get migration for")
 	assert.Equal(t, 0, n)
 
@@ -271,7 +271,7 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	}()
 
 	m.AllowMissingDowns = true
-	n, err = m.Down()
+	n, err = m.Rollback()
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 	<-done
@@ -280,47 +280,47 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	os.Rename("20180918200453.correct.down.sql", filepath.Join(migrationsDir, "20180918200453.correct.down.sql"))
 	// END not existing down
 
-	n, err = m.Down()
+	n, err = m.Rollback()
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
 	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
-	n, err = m.UpSteps(2)
+	n, err = m.MigrateSteps(2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	lm, _ = m.LatestVersionMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
-	n, err = m.DownSteps(2)
+	n, err = m.RollbackSteps(2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
-	n, err = m.Up()
+	n, err = m.Migrate()
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 	lm, _ = m.LatestVersionMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
 
-	n, err = m.DownSteps(1)
+	n, err = m.RollbackSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
 	lm, _ = m.LatestVersionMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
-	n, err = m.Down()
+	n, err = m.Rollback()
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	lm, _ = m.LatestVersionMigration()
 	assert.Nil(t, lm)
 
-	// not successive ups
+	// not successive migrates
 	os.Rename(filepath.Join(migrationsDir, "20180918200453.correct.up.sql"), "20180918200453.correct.up.sql")
 	os.Rename(filepath.Join(migrationsDir, "/20180918200632.other_correct.up.sql"), "20180918200632.other_correct.up.sql")
 
-	n, err = m.Up()
+	n, err = m.Migrate()
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
 	lm, _ = m.LastAppliedMigration()
@@ -333,35 +333,35 @@ func Test_Migrator_UpSteps_DownSteps(t *testing.T) {
 	os.Rename("20180918200453.correct.up.sql", filepath.Join(migrationsDir, "20180918200453.correct.up.sql"))
 	os.Rename("20180918200632.other_correct.up.sql", filepath.Join(migrationsDir, "20180918200632.other_correct.up.sql"))
 
-	n, err = m.Up()
+	n, err = m.Migrate()
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	lm, _ = m.LastAppliedMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), lm.Version)
 
-	n, err = m.Down()
+	n, err = m.Rollback()
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	lm, _ = m.LastAppliedMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
 
-	m.Up()
-	n, err = m.DownSteps(1)
+	m.Migrate()
+	n, err = m.RollbackSteps(1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n)
 	lm, _ = m.LastAppliedMigration()
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), lm.Version)
 
-	m.Down()
-	m.Up()
+	m.Rollback()
+	m.Migrate()
 	// from two batches
-	n, err = m.DownSteps(4)
+	n, err = m.RollbackSteps(4)
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 	lm, _ = m.LastAppliedMigration()
 	assert.Nil(t, lm)
 
-	// END not successive up
+	// END not successive migrates
 
 }
 
