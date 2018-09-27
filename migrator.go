@@ -91,7 +91,7 @@ func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, e
 		fname := strings.Join(parts, ".")
 		fpath := filepath.Join(migrationsDir, fname)
 
-		if fileExists(fpath) {
+		if FileExists(fpath) {
 			return nil, errors.Errorf("migration file %s already exists", fname)
 		}
 

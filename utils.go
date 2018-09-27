@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// dirExists checks if directory at path is exist
-func dirExists(dirpath string) bool {
+// DirExists checks if directory at path is exist
+func DirExists(dirpath string) bool {
 	stats, err := os.Stat(dirpath)
 	if os.IsNotExist(err) || !stats.IsDir() {
 		return false
@@ -17,7 +17,7 @@ func dirExists(dirpath string) bool {
 	return true
 }
 
-func fileExists(fpath string) bool {
+func FileExists(fpath string) bool {
 	stats, err := os.Stat(fpath)
 	if os.IsNotExist(err) || stats.IsDir() {
 		return false

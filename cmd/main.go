@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -78,7 +79,7 @@ func getViper() (*viper.Viper, error) {
 
 	viper.AddConfigPath(projectDir)
 	viper.SetConfigName(configFile)
-	viper.ReadInConfig()
+	err = viper.ReadInConfig()
 
 	if kvsParamsStr != "" {
 		kvsParams, err := parseKVConnectionString(kvsParamsStr)
@@ -86,14 +87,24 @@ func getViper() (*viper.Viper, error) {
 			return nil, errors.Wrap(err, "wrong key value store connection")
 		}
 
+		kvsErrorString := fmt.Sprintf("can't connect to key value store using connection string %s", kvsParamsStr)
 		if secretKeyRingPath != "" {
-			viper.AddSecureRemoteProvider(kvsParams.provider, kvsParams.formatEndpoint(), kvsParams.path, secretKeyRingPath)
+			err = viper.AddSecureRemoteProvider(kvsParams.provider, kvsParams.formatEndpoint(), kvsParams.path, secretKeyRingPath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "%s and key ring path %s", kvsErrorString, secretKeyRingPath)
+			}
 		} else {
-			viper.AddRemoteProvider(kvsParams.provider, kvsParams.formatEndpoint(), kvsParams.path)
+			err = viper.AddRemoteProvider(kvsParams.provider, kvsParams.formatEndpoint(), kvsParams.path)
+			if err != nil {
+				return nil, errors.Wrap(err, kvsParamsStr)
+			}
 		}
 
 		viper.SetConfigType(kvsParams.format)
-		viper.ReadRemoteConfig()
+		err = viper.ReadRemoteConfig()
+		if err != nil {
+			return nil, errors.Wrap(err, kvsErrorString)
+		}
 	}
 
 	envVarsPrefix := filepath.Base(projectDir)
@@ -112,7 +123,10 @@ func getViper() (*viper.Viper, error) {
 	v.AutomaticEnv()
 
 	for _, flag := range []string{"engine", "database", "user", "password", "host", "port", "table", "missingdowns"} {
-		v.BindPFlag(flag, migrateCmd.PersistentFlags().Lookup(flag))
+		err = v.BindPFlag(flag, migrateCmd.PersistentFlags().Lookup(flag))
+		if err != nil {
+			return nil, errors.Wrapf(err, "can't bind flag %s", flag)
+		}
 	}
 
 	return v, nil

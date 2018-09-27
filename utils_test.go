@@ -15,21 +15,21 @@ func testDir() string {
 }
 
 func Test_isDirExists(t *testing.T) {
-	assert.False(t, dirExists(filepath.Join(testDir(), "not_existed")))
-	assert.False(t, dirExists(filepath.Join(testDir(), "file")))
-	assert.False(t, dirExists("relPath"))
+	assert.False(t, DirExists(filepath.Join(testDir(), "not_existed")))
+	assert.False(t, DirExists(filepath.Join(testDir(), "file")))
+	assert.False(t, DirExists("relPath"))
 
-	assert.True(t, dirExists(filepath.Join("test", "dir")))
-	assert.True(t, dirExists(filepath.Join(testDir(), "dir")))
+	assert.True(t, DirExists(filepath.Join("test", "dir")))
+	assert.True(t, DirExists(filepath.Join(testDir(), "dir")))
 }
 
 func Test_isFileExists(t *testing.T) {
-	assert.False(t, fileExists(filepath.Join(testDir(), "not_existed")))
-	assert.False(t, fileExists("relPath"))
-	assert.False(t, fileExists(filepath.Join(testDir(), "dir")))
+	assert.False(t, FileExists(filepath.Join(testDir(), "not_existed")))
+	assert.False(t, FileExists("relPath"))
+	assert.False(t, FileExists(filepath.Join(testDir(), "dir")))
 
-	assert.True(t, fileExists(filepath.Join("test", "file")))
-	assert.True(t, fileExists(filepath.Join(testDir(), "file")))
+	assert.True(t, FileExists(filepath.Join("test", "file")))
+	assert.True(t, FileExists(filepath.Join(testDir(), "file")))
 }
 
 func Test_isValidString(t *testing.T) {

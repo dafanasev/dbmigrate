@@ -42,15 +42,16 @@ func parseKVConnectionString(s string) (*kvsParams, error) {
 	}
 
 	pathParts := strings.Split(u.Path, ".")
-	if len(pathParts) < 2 {
+	pLen := len(pathParts)
+	if pLen < 2 {
 		return nil, errors.New("key value store format is not provided")
 	}
-	path := strings.Join(pathParts[:len(pathParts)-1], ".")
+	path := strings.Join(pathParts[:pLen-1], ".")
 
-	format := pathParts[len(pathParts)]
+	format := pathParts[pLen]
 	switch format {
 	case "json", "toml", "yaml", "yml", "properties", "props", "prop", "hcl":
-		// the format is ok
+		// format is ok
 	default:
 		return nil, errors.Errorf("%s is not correct key value store format", format)
 	}
@@ -65,7 +66,7 @@ func parseKVConnectionString(s string) (*kvsParams, error) {
 }
 
 func (p *kvsParams) formatEndpoint() string {
-	s := fmt.Sprintf("%s:%s", p.host, p.port)
+	s := fmt.Sprintf("%s:%d", p.host, p.port)
 	if p.provider == "etcd" {
 		s = "http://" + s
 	}

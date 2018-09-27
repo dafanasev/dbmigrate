@@ -385,7 +385,7 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 				descrPart = "test_specific_migration"
 			}
 			assert.Contains(t, fname, descrPart)
-			assert.True(t, fileExists(filepath.Join(migrationsDir, fname)))
+			assert.True(t, FileExists(filepath.Join(migrationsDir, fname)))
 		}
 
 		_, err = m.GenerateMigration(data.descr, data.isSpecific)

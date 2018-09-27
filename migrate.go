@@ -45,7 +45,7 @@ func (d Direction) String() string {
 
 // FindProjectDir recursively find project dir (the one that has migrations subdir)
 func FindProjectDir(fromDir string) (string, error) {
-	if dirExists(filepath.Join(fromDir, migrationsDir)) {
+	if DirExists(filepath.Join(fromDir, migrationsDir)) {
 		return fromDir, nil
 	}
 
