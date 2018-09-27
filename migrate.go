@@ -14,12 +14,12 @@ const (
 )
 
 type Settings struct {
-	Database          string
 	Engine            string
-	Host              string
-	Port              int
+	Database          string
 	User              string
 	Password          string
+	Host              string
+	Port              int
 	MigrationsTable   string
 	AllowMissingDowns bool
 	// migrationsCh is the channel for applied migrations

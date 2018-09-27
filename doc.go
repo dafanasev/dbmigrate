@@ -11,9 +11,10 @@ package dbmigrate
 	* option to return error or skip step on rollback and down migration is not exist or empty +
 	* move insert/delete versions logic into transaction +
 	* rollback in batches, by applied at instead of version +
-	* status, create, drop methods for migrator, + version, redo setup for cli
+	* status method for migrator
 	* CLI tool
-	* configuring using flags, yml file or env variables
+	* configuring using flags, yml file or env variables +
+	* or etcd/consul +
 	* different environments (e.g. test, dev, prod)
 	* embed migrations into binary
 
