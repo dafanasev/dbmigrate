@@ -14,7 +14,7 @@ func testDir() string {
 	return filepath.Join(wd, "test")
 }
 
-func Test_isDirExists(t *testing.T) {
+func Test_DirExists(t *testing.T) {
 	assert.False(t, DirExists(filepath.Join(testDir(), "not_existed")))
 	assert.False(t, DirExists(filepath.Join(testDir(), "file")))
 	assert.False(t, DirExists("relPath"))
@@ -23,7 +23,7 @@ func Test_isDirExists(t *testing.T) {
 	assert.True(t, DirExists(filepath.Join(testDir(), "dir")))
 }
 
-func Test_isFileExists(t *testing.T) {
+func Test_FileExists(t *testing.T) {
 	assert.False(t, FileExists(filepath.Join(testDir(), "not_existed")))
 	assert.False(t, FileExists("relPath"))
 	assert.False(t, FileExists(filepath.Join(testDir(), "dir")))
@@ -62,4 +62,14 @@ func Test_isRootDir(t *testing.T) {
 	assert.False(t, isRootDir(filepath.Join("C:", "windows")))
 	assert.True(t, isRootDir("/"))
 	assert.True(t, isRootDir(filepath.Join("C:")))
+}
+
+func Test_ProviderExists(t *testing.T) {
+	for _, p := range []string{"sqlite", "postgres", "mysql"} {
+		assert.True(t, ProviderExists(p))
+	}
+
+	for _, p := range []string{"", " ", "\n", "nodb"} {
+		assert.False(t, ProviderExists(p))
+	}
 }

@@ -56,3 +56,8 @@ func isRootDir(dir string) bool {
 	}
 	return false
 }
+
+func ProviderExists(provider string) bool {
+	_, ok := providers[provider]
+	return ok
+}
