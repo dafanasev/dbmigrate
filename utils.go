@@ -57,15 +57,15 @@ func isRootDir(dir string) bool {
 	return false
 }
 
-func ProviderExists(provider string) bool {
-	_, ok := providers[provider]
+func EngineExists(engine string) bool {
+	_, ok := providers[engine]
 	return ok
 }
 
-func Providers() []string {
-	var ps []string
-	for provider := range providers {
-		ps = append(ps, provider)
+func Engines() []string {
+	var engines []string
+	for engine := range providers {
+		engines = append(engines, engine)
 	}
-	return ps
+	return engines
 }
