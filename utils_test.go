@@ -3,6 +3,7 @@ package dbmigrate
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,4 +73,14 @@ func Test_ProviderExists(t *testing.T) {
 	for _, p := range []string{"", " ", "\n", "nodb"} {
 		assert.False(t, ProviderExists(p))
 	}
+}
+
+func Test_Providers(t *testing.T) {
+	exp := []string{"sqlite", "postgres", "mysql"}
+	sort.Strings(exp)
+
+	act := Providers()
+	sort.Strings(act)
+
+	assert.Equal(t, exp, act)
 }

@@ -61,3 +61,11 @@ func ProviderExists(provider string) bool {
 	_, ok := providers[provider]
 	return ok
 }
+
+func Providers() []string {
+	var ps []string
+	for provider := range providers {
+		ps = append(ps, provider)
+	}
+	return ps
+}
