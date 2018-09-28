@@ -12,7 +12,9 @@ import (
 	_ "github.com/spf13/viper/remote"
 )
 
-var v *viper.Viper
+var migrator *dbmigrate.Migrator
+var migrationsCh chan *dbmigrate.Migration
+var errorsCh chan error
 
 var (
 	appName string
@@ -31,13 +33,15 @@ var (
 	port              int
 	migrationsTable   string
 	allowMissingDowns bool
+
+	steps int
 )
 
 func init() {
-	migrateCmd.PersistentFlags().StringVarP(&appName, "app_name", "a", "", "app name (used as prefix for env vars)")
+	migrateCmd.PersistentFlags().StringVarP(&appName, "appname", "a", "", "app name (used as prefix for env vars)")
 	migrateCmd.PersistentFlags().StringVarP(&env, "env", "e", "", "optional environment (to support more than one database)")
 
-	migrateCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "dbmigrations.yml", "config file (default is dbmigrations.yml)")
+	migrateCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "dbmigrations", "config file (default is dbmigrations.yml)")
 	migrateCmd.PersistentFlags().StringVarP(&kvsParamsStr, "kvsparams", "k", "", "key value connection string, (provider://host:port/path.format")
 	migrateCmd.PersistentFlags().StringVarP(&secretKeyRingPath, "secretkeyring", "r", "", "secret key ring path")
 
@@ -51,18 +55,37 @@ func init() {
 	migrateCmd.PersistentFlags().BoolVarP(&allowMissingDowns, "missingdowns", "m", false, "allow missing down migrations")
 
 	cobra.OnInitialize(func() {
-		var err error
-		v, err = setupViper()
+		startErrStr := "can't start dbmigrate"
+		v, err := setupViper()
 		if err != nil {
-			exitWithError(errors.Wrap(err, "can't start dbmigrate"))
+			exitWithError(errors.Wrap(err, startErrStr))
+		}
+
+		migrationsCh = make(chan *dbmigrate.Migration)
+		errorsCh = make(chan error)
+
+		migrator, err = dbmigrate.NewMigrator(&dbmigrate.Settings{
+			Engine:            v.GetString("engine"),
+			Database:          v.GetString("database"),
+			User:              v.GetString("user"),
+			Host:              v.GetString("host"),
+			Port:              v.GetInt("port"),
+			MigrationsTable:   v.GetString("table"),
+			AllowMissingDowns: v.GetBool("missingdowns"),
+			MigrationsCh:      migrationsCh,
+			ErrorsCh:          errorsCh,
+		})
+		if err != nil {
+			exitWithError(errors.Wrapf(err, startErrStr))
 		}
 	})
 }
 
 func main() {
+	migrateCmd.AddCommand(generateCmd)
 	err := migrateCmd.Execute()
 	if err != nil {
-		exitWithError(errors.Wrap(err, "can't execute migrations"))
+		exitWithError(err)
 	}
 }
 
@@ -79,7 +102,7 @@ func setupViper() (*viper.Viper, error) {
 
 	viper.AddConfigPath(projectDir)
 	viper.SetConfigName(configFile)
-	err = viper.ReadInConfig()
+	viper.ReadInConfig()
 
 	if kvsParamsStr != "" {
 		kvsParams, err := parseKVConnectionString(kvsParamsStr)
@@ -107,8 +130,8 @@ func setupViper() (*viper.Viper, error) {
 		}
 	}
 
-	envVarsPrefix := filepath.Base(projectDir)
 	var v *viper.Viper
+
 	if env == "" {
 		v = viper.GetViper()
 	} else {
@@ -117,8 +140,18 @@ func setupViper() (*viper.Viper, error) {
 		} else {
 			v = viper.New()
 		}
+	}
+
+	var envVarsPrefix string
+	if appName != "" {
+		envVarsPrefix = appName
+	} else {
+		envVarsPrefix = filepath.Base(projectDir)
+	}
+	if env != "" {
 		envVarsPrefix += "_" + env
 	}
+
 	v.SetEnvPrefix(envVarsPrefix)
 	v.AutomaticEnv()
 

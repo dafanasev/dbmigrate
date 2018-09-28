@@ -7,6 +7,6 @@ import (
 
 // exitWithError prints an error to the terminal and terminates app with error
 func exitWithError(err error) {
-	fmt.Println(err)
+	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
 }
