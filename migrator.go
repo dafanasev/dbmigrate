@@ -75,7 +75,13 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 	return m, nil
 }
 
-func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, error) {
+func (m *Migrator) GenerateMigration(descr string, engine string) ([]string, error) {
+	if engine != "" {
+		if _, ok := providers[engine]; !ok {
+			return nil, errors.Errorf("database engine %s is not exists/supported", engine)
+		}
+	}
+
 	var fpaths []string
 
 	ts := time.Now().UTC()
@@ -83,8 +89,8 @@ func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, e
 
 	for _, direction := range []string{"up", "down"} {
 		parts := []string{ts.Format(timestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_")}
-		if isSpecific {
-			parts = append(parts, m.Engine)
+		if engine != "" {
+			parts = append(parts, engine)
 		}
 		parts = append(parts, direction, "sql")
 

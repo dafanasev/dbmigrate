@@ -369,26 +369,29 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
 
+	_, err := m.GenerateMigration("wrong engine", "nodb")
+	assert.EqualError(t, err, "database engine nodb is not exists/supported")
+
 	testData := []struct {
-		descr      string
-		isSpecific bool
+		descr  string
+		engine string
 	}{
-		{" test  migration \n ", false},
-		{" test\tspecific migration \n ", true},
+		{" test  migration \n ", ""},
+		{" test\tspecific migration \n ", "sqlite"},
 	}
 	for _, data := range testData {
-		fpaths, err := m.GenerateMigration(data.descr, data.isSpecific)
+		fpaths, err := m.GenerateMigration(data.descr, data.engine)
 		assert.NoError(t, err)
 		for _, fpath := range fpaths {
 			descrPart := "test_migration"
-			if data.isSpecific {
+			if data.engine != "" {
 				descrPart = "test_specific_migration"
 			}
 			assert.Contains(t, fpath, descrPart)
 			assert.True(t, FileExists(fpath))
 		}
 
-		_, err = m.GenerateMigration(data.descr, data.isSpecific)
+		_, err = m.GenerateMigration(data.descr, data.engine)
 		assert.Contains(t, err.Error(), "already exists")
 
 		for _, fname := range fpaths {
