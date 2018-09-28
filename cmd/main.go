@@ -52,7 +52,7 @@ func init() {
 
 	cobra.OnInitialize(func() {
 		var err error
-		v, err = getViper()
+		v, err = setupViper()
 		if err != nil {
 			exitWithError(errors.Wrap(err, "can't start dbmigrate"))
 		}
@@ -66,7 +66,7 @@ func main() {
 	}
 }
 
-func getViper() (*viper.Viper, error) {
+func setupViper() (*viper.Viper, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		exitWithError(errors.Wrap(err, "can't get working directory"))

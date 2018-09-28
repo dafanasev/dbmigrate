@@ -15,8 +15,8 @@ package dbmigrate
 	* CLI tool
 	* configuring using flags, yml file or env variables +
 	* or etcd/consul +
-	* different environments (e.g. test, dev, prod)
-	* embed migrations into binary
+	* different environments (e.g. test, dev, prod) +
+	* embed migrations into binary, zip/tar archives or get them from http, ssh, s3
 
 
 	TODO:
