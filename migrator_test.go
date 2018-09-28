@@ -377,21 +377,21 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 		{" test\tspecific migration \n ", true},
 	}
 	for _, data := range testData {
-		fnames, err := m.GenerateMigration(data.descr, data.isSpecific)
+		fpaths, err := m.GenerateMigration(data.descr, data.isSpecific)
 		assert.NoError(t, err)
-		for _, fname := range fnames {
+		for _, fpath := range fpaths {
 			descrPart := "test_migration"
 			if data.isSpecific {
 				descrPart = "test_specific_migration"
 			}
-			assert.Contains(t, fname, descrPart)
-			assert.True(t, FileExists(filepath.Join(migrationsDir, fname)))
+			assert.Contains(t, fpath, descrPart)
+			assert.True(t, FileExists(fpath))
 		}
 
 		_, err = m.GenerateMigration(data.descr, data.isSpecific)
 		assert.Contains(t, err.Error(), "already exists")
 
-		for _, fname := range fnames {
+		for _, fname := range fpaths {
 			os.Remove(filepath.Join(migrationsDir, fname))
 		}
 	}

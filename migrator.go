@@ -76,7 +76,7 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 }
 
 func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, error) {
-	var fnames []string
+	var fpaths []string
 
 	ts := time.Now().UTC()
 	re := regexp.MustCompile(`\s+`)
@@ -100,9 +100,9 @@ func (m *Migrator) GenerateMigration(descr string, isSpecific bool) ([]string, e
 			return nil, errors.Wrapf(err, "can't create migration file %s", fname)
 		}
 
-		fnames = append(fnames, fname)
+		fpaths = append(fpaths, fpath)
 	}
-	return fnames, nil
+	return fpaths, nil
 }
 
 // Close frees resources acquired by migrator
