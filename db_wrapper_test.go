@@ -37,7 +37,7 @@ func Test_dbWrapper_setPlaceholders(t *testing.T) {
 
 func Test_dbWrapper(t *testing.T) {
 	for engine, provider := range providers {
-		s := &Settings{Engine: engine, Database: "migrate_test", User: "migrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
+		s := &Settings{Engine: engine, Database: "migrate_test", User: "dbmigrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
 		if engine == "postgres" {
 			s.Port = 5433
 		}
@@ -68,9 +68,9 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, time.Time{}, ts)
 
-		tss, err := w.appliedMigrationsTimestamps("version DESC")
+		mds, err := w.appliedMigrationsData("version DESC")
 		assert.NoError(t, err)
-		assert.Equal(t, []time.Time(nil), tss)
+		assert.Equal(t, []*migrationData(nil), mds)
 
 		n, err := w.countMigrationsInLastBatch()
 		assert.NoError(t, err)
@@ -98,17 +98,17 @@ func Test_dbWrapper(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 2, n)
 
-		_, err = w.appliedMigrationsTimestamps("version RASC")
+		_, err = w.appliedMigrationsData("version RASC")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "can't get applied migrations versions")
 
-		tss, err = w.appliedMigrationsTimestamps("version DESC")
+		mds, err = w.appliedMigrationsData("version DESC")
 		assert.NoError(t, err)
-		assert.Equal(t, []time.Time{baseTs.Add(time.Second), baseTs}, tss)
+		assert.Equal(t, []time.Time{baseTs.Add(time.Second), baseTs}, []time.Time{mds[0].version, mds[1].version})
 
-		tss, err = w.appliedMigrationsTimestamps("version ASC")
+		mds, err = w.appliedMigrationsData("version ASC")
 		assert.NoError(t, err)
-		assert.Equal(t, []time.Time{baseTs, baseTs.Add(time.Second)}, tss)
+		assert.Equal(t, []time.Time{baseTs, baseTs.Add(time.Second)}, []time.Time{mds[0].version, mds[1].version})
 
 		err = w.deleteMigrationVersion(baseTs.Add(time.Second), nil)
 		assert.NoError(t, err)
@@ -127,7 +127,7 @@ func Test_dbWrapper(t *testing.T) {
 func Test_dbWrapper_execMigrationQueries(t *testing.T) {
 
 	for engine, provider := range providers {
-		s := &Settings{Engine: engine, Database: "migrate_test", User: "migrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
+		s := &Settings{Engine: engine, Database: "migrate_test", User: "dbmigrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
 		if engine == "postgres" {
 			s.Port = 5433
 		}

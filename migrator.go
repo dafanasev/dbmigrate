@@ -163,22 +163,22 @@ func (m *Migrator) Rollback() (int, error) {
 }
 
 func (m *Migrator) RollbackSteps(steps int) (int, error) {
-	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps("applied_at DESC, version DESC")
+	appliedMigrationsData, err := m.dbWrapper.appliedMigrationsData("applied_at DESC, version DESC")
 	if err != nil {
 		return 0, errors.Wrap(err, "can't rollback")
 	}
 
-	if steps > len(appliedMigrationsTimestamps) {
-		steps = len(appliedMigrationsTimestamps)
+	if steps > len(appliedMigrationsData) {
+		steps = len(appliedMigrationsData)
 	}
 
 	var migrations []*Migration
-	for _, ts := range appliedMigrationsTimestamps[:steps] {
-		migration, err := m.getMigration(ts, directionDown)
+	for _, migrationData := range appliedMigrationsData[:steps] {
+		migration, err := m.getMigration(migrationData.version, directionDown)
 		if err == nil {
 			migrations = append(migrations, migration)
 		} else {
-			err = errors.Wrapf(err, "can't get migration for version %s", ts.Format(printTimestampFormat))
+			err = errors.Wrapf(err, "can't get migration for version %s", migrationData.version.Format(printTimestampFormat))
 			if !m.AllowMissingDowns {
 				return 0, err
 			}
@@ -331,7 +331,7 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 		return nil, errors.Wrap(err, "can't get migrations")
 	}
 
-	appliedMigrationsTimestamps, err := m.dbWrapper.appliedMigrationsTimestamps("version ASC")
+	appliedMigrationsData, err := m.dbWrapper.appliedMigrationsData("version ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -339,8 +339,8 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 	var unappliedMigrations []*Migration
 	for _, m := range migrations {
 		found := false
-		for _, ts := range appliedMigrationsTimestamps {
-			if m.Version == ts {
+		for _, migrationData := range appliedMigrationsData {
+			if m.Version == migrationData.version {
 				found = true
 				break
 			}

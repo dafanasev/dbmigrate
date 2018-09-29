@@ -25,6 +25,11 @@ type executor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
+type migrationData struct {
+	version   time.Time
+	appliedAt time.Time
+}
+
 func newDBWrapper(settings *Settings, provider provider) *dbWrapper {
 	w := &dbWrapper{
 		Settings: settings,
@@ -116,24 +121,30 @@ func (w *dbWrapper) getAttrOrderedBy(attr string, order string) (time.Time, erro
 	return ts, nil
 }
 
-func (w *dbWrapper) appliedMigrationsTimestamps(order string) ([]time.Time, error) {
-	rows, err := w.db.Query(fmt.Sprintf("SELECT version FROM %s ORDER BY %s", w.MigrationsTable, order))
+func (w *dbWrapper) appliedMigrationsData(order string) ([]*migrationData, error) {
+	rows, err := w.db.Query(fmt.Sprintf("SELECT version, applied_at FROM %s ORDER BY %s", w.MigrationsTable, order))
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get applied migrations versions")
 	}
 	defer rows.Close()
 
-	var tss []time.Time
-	var v string
+	var mds []*migrationData
+	var (
+		version   string
+		appliedAt string
+	)
 	for rows.Next() {
-		err = rows.Scan(&v)
+		err = rows.Scan(&version, &appliedAt)
 		if err != nil {
-			return nil, errors.Wrap(err, "can't scan migration version row")
+			return nil, errors.Wrap(err, "can't scan migrations table's row")
 		}
-		ts, _ := time.Parse(timestampFormat, v)
-		tss = append(tss, ts)
+
+		md := &migrationData{}
+		md.version, _ = time.Parse(timestampFormat, version)
+		md.appliedAt, _ = time.Parse(timestampFormat, appliedAt)
+		mds = append(mds, md)
 	}
-	return tss, nil
+	return mds, nil
 }
 
 func (w *dbWrapper) insertMigrationVersion(ts time.Time, appliedAtTs time.Time, executor executor) error {
