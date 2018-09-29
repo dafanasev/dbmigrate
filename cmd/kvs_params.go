@@ -17,7 +17,7 @@ type kvsParams struct {
 	format   string
 }
 
-func parseKVConnectionString(s string) (*kvsParams, error) {
+func parseKVSConnectionString(s string) (*kvsParams, error) {
 	// s must be in url format( provider://host:port/path.format)
 	u, err := url.Parse(s)
 	if err != nil {
@@ -42,18 +42,18 @@ func parseKVConnectionString(s string) (*kvsParams, error) {
 	}
 
 	pathParts := strings.Split(u.Path, ".")
-	pLen := len(pathParts)
-	if pLen < 2 {
+	l := len(pathParts)
+	if l < 2 {
 		return nil, errors.New("key value store format is not provided")
 	}
-	path := strings.Join(pathParts[:pLen-1], ".")
+	path := strings.Join(pathParts[:l-1], ".")
 
-	format := pathParts[pLen]
+	format := pathParts[l]
 	switch format {
 	case "json", "toml", "yaml", "yml", "properties", "props", "prop", "hcl":
 		// format is ok
 	default:
-		return nil, errors.Errorf("%s is not correct key value store format", format)
+		return nil, errors.Errorf("%s is not correct config format", format)
 	}
 
 	return &kvsParams{

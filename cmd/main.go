@@ -13,8 +13,6 @@ import (
 )
 
 var migrator *dbmigrate.Migrator
-var migrationsCh chan *dbmigrate.Migration
-var errorsCh chan error
 
 var (
 	appName string
@@ -61,9 +59,6 @@ func init() {
 			exitWithError(errors.Wrap(err, startErrStr))
 		}
 
-		migrationsCh = make(chan *dbmigrate.Migration)
-		errorsCh = make(chan error)
-
 		migrator, err = dbmigrate.NewMigrator(&dbmigrate.Settings{
 			Engine:            v.GetString("engine"),
 			Database:          v.GetString("database"),
@@ -72,8 +67,8 @@ func init() {
 			Port:              v.GetInt("port"),
 			MigrationsTable:   v.GetString("table"),
 			AllowMissingDowns: v.GetBool("missingdowns"),
-			MigrationsCh:      migrationsCh,
-			ErrorsCh:          errorsCh,
+			MigrationsCh:      make(chan *dbmigrate.Migration),
+			ErrorsCh:          make(chan error),
 		})
 		if err != nil {
 			exitWithError(errors.Wrapf(err, startErrStr))
@@ -105,7 +100,7 @@ func setupViper() (*viper.Viper, error) {
 	viper.ReadInConfig()
 
 	if kvsParamsStr != "" {
-		kvsParams, err := parseKVConnectionString(kvsParamsStr)
+		kvsParams, err := parseKVSConnectionString(kvsParamsStr)
 		if err != nil {
 			return nil, errors.Wrap(err, "wrong key value store connection")
 		}
