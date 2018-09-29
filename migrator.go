@@ -88,11 +88,11 @@ func (m *Migrator) GenerateMigration(descr string, engine string) ([]string, err
 	re := regexp.MustCompile(`\s+`)
 
 	for _, direction := range []string{"up", "down"} {
-		parts := []string{ts.Format(timestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_")}
+		parts := []string{ts.Format(timestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_"), direction}
 		if engine != "" {
 			parts = append(parts, engine)
 		}
-		parts = append(parts, direction, "sql")
+		parts = append(parts, "sql")
 
 		fname := strings.Join(parts, ".")
 		fpath := filepath.Join(migrationsDir, fname)
@@ -117,6 +117,15 @@ func (m *Migrator) Close() error {
 	if err != nil {
 		return errors.Wrap(err, "error closing migrator")
 	}
+
+	if m.MigrationsCh != nil {
+		close(m.MigrationsCh)
+	}
+
+	if m.ErrorsCh != nil {
+		close(m.ErrorsCh)
+	}
+
 	return nil
 }
 
@@ -297,7 +306,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 			return nil
 		}
 
-		// Migration that should be run on isSpecific dbWrapper only
+		// migration that should be run on isSpecific dbWrapper only
 		if migration.engine != "" && migration.engine != m.Engine {
 			return nil
 		}

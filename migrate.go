@@ -23,9 +23,9 @@ type Settings struct {
 	MigrationsTable   string
 	AllowMissingDowns bool
 	// migrationsCh is the channel for applied migrations
-	MigrationsCh chan<- *Migration
+	MigrationsCh chan *Migration
 	// errorsChan is the channel for errors
-	ErrorsCh chan<- error
+	ErrorsCh chan error
 }
 
 type Direction int

@@ -3,6 +3,7 @@ package dbmigrate
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -388,6 +389,7 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 				descrPart = "test_specific_migration"
 			}
 			assert.Contains(t, fpath, descrPart)
+			assert.Contains(t, fpath, strings.Join([]string{data.engine, "sql"}, "."))
 			assert.True(t, FileExists(fpath))
 		}
 
