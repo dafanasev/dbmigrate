@@ -18,14 +18,17 @@ type kvsParams struct {
 }
 
 func parseKVSConnectionString(s string) (*kvsParams, error) {
-	// s must be in url format( provider://host:port/path.format)
+	// s must be in url format (provider://host:port/path.format)
 	u, err := url.Parse(s)
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't parse string %s into components", s)
 	}
+	if u.Scheme == "" || u.Host == "" || u.Path == "" {
+		return nil, errors.Errorf("can't parse string %s into components", s)
+	}
 
 	if u.Scheme != "etcd" && u.Scheme != "consul" {
-		return nil, errors.Wrapf(err, "%s is not correct key value store provider", u.Scheme)
+		return nil, errors.Errorf("%s is not correct key value store provider", u.Scheme)
 	}
 
 	if u.Port() == "" {
@@ -48,7 +51,7 @@ func parseKVSConnectionString(s string) (*kvsParams, error) {
 	}
 	path := strings.Join(pathParts[:l-1], ".")
 
-	format := pathParts[l]
+	format := pathParts[l-1]
 	switch format {
 	case "json", "toml", "yaml", "yml", "properties", "props", "prop", "hcl":
 		// format is ok
