@@ -117,7 +117,7 @@ func (w *dbWrapper) getAttrOrderedBy(attr string, order string) (time.Time, erro
 	if err != nil {
 		return time.Time{}, err
 	}
-	ts, _ := time.Parse(timestampFormat, result)
+	ts, _ := time.Parse(TimestampFormat, result)
 	return ts, nil
 }
 
@@ -140,8 +140,8 @@ func (w *dbWrapper) appliedMigrationsData(order string) ([]*migrationData, error
 		}
 
 		md := &migrationData{}
-		md.version, _ = time.Parse(timestampFormat, version)
-		md.appliedAt, _ = time.Parse(timestampFormat, appliedAt)
+		md.version, _ = time.Parse(TimestampFormat, version)
+		md.appliedAt, _ = time.Parse(TimestampFormat, appliedAt)
 		mds = append(mds, md)
 	}
 	return mds, nil
@@ -153,7 +153,7 @@ func (w *dbWrapper) insertMigrationVersion(ts time.Time, appliedAtTs time.Time, 
 	}
 
 	_, err := executor.Exec(w.setPlaceholders(fmt.Sprintf("INSERT INTO %s (version, applied_at) VALUES (?, ?)", w.MigrationsTable)),
-		ts.UTC().Format(timestampFormat), appliedAtTs.UTC().Format(timestampFormat))
+		ts.UTC().Format(TimestampFormat), appliedAtTs.UTC().Format(TimestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't insert migration")
 	}
@@ -181,7 +181,7 @@ func (w *dbWrapper) deleteMigrationVersion(ts time.Time, executor executor) erro
 
 	_, err := executor.Exec(w.setPlaceholders(fmt.Sprintf(
 		"DELETE FROM %s WHERE version = ?", w.MigrationsTable)),
-		ts.UTC().Format(timestampFormat))
+		ts.UTC().Format(TimestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't delete migration")
 	}

@@ -26,7 +26,7 @@ func (bts byTimestamp) Swap(i, j int)      { bts[i], bts[j] = bts[j], bts[i] }
 func (bts byTimestamp) Less(i, j int) bool { return bts[i].Version.Unix() < bts[j].Version.Unix() }
 
 func (m *Migration) FileName() string {
-	parts := []string{m.Version.Format(timestampFormat), m.Name, m.Direction.String()}
+	parts := []string{m.Version.Format(TimestampFormat), m.Name, m.Direction.String()}
 	if m.Engine != "" {
 		parts = append(parts, m.Engine)
 	}
@@ -48,7 +48,7 @@ func migrationFromFileName(fname string) (*Migration, error) {
 
 	parts := strings.Split(fname, ".")
 
-	ts, err := time.Parse(timestampFormat, parts[0])
+	ts, err := time.Parse(TimestampFormat, parts[0])
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}

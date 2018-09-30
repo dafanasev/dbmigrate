@@ -88,7 +88,7 @@ func (m *Migrator) GenerateMigration(descr string, engine string) ([]string, err
 	re := regexp.MustCompile(`\s+`)
 
 	for _, direction := range []string{"up", "down"} {
-		parts := []string{ts.Format(timestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_"), direction}
+		parts := []string{ts.Format(TimestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_"), direction}
 		if engine != "" {
 			parts = append(parts, engine)
 		}
@@ -256,7 +256,7 @@ func (m *Migrator) LatestVersionMigration() (*Migration, error) {
 
 	migration, err := m.getMigration(ts, directionUp)
 	if err != nil {
-		return nil, errors.Wrapf(err, "can't get latest migration with version %s", ts.Format(timestampFormat))
+		return nil, errors.Wrapf(err, "can't get latest migration with version %s", ts.Format(TimestampFormat))
 	}
 
 	return migration, nil
@@ -274,7 +274,7 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 
 	migration, err := m.getMigration(ts, directionUp)
 	if err != nil {
-		return nil, errors.Wrapf(err, "can't get last applied migration with version %s", ts.Format(timestampFormat))
+		return nil, errors.Wrapf(err, "can't get last applied migration with version %s", ts.Format(TimestampFormat))
 	}
 
 	return migration, nil
@@ -377,7 +377,7 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 }
 
 func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, error) {
-	timestampStr := ts.Format(timestampFormat)
+	timestampStr := ts.Format(TimestampFormat)
 
 	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", migrationsDir, timestampStr, direction))
 	files, _ := filepath.Glob(pattern)

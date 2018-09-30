@@ -328,7 +328,7 @@ func Test_Migrator_Migrate_Rollback(t *testing.T) {
 	assert.Equal(t, time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC), lm.Version)
 	// pretend to travel in time
 	ts := lm.Version.Add(-1 * time.Second)
-	_, err = m.dbWrapper.db.Exec("UPDATE migrations SET applied_at = ?", ts.Format(timestampFormat))
+	_, err = m.dbWrapper.db.Exec("UPDATE migrations SET applied_at = ?", ts.Format(TimestampFormat))
 	require.NoError(t, err)
 
 	os.Rename("20180918200453.correct.up.sql", filepath.Join(migrationsDir, "20180918200453.correct.up.sql"))
