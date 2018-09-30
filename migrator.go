@@ -174,7 +174,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 
 	var migrations []*Migration
 	for _, migrationData := range appliedMigrationsData[:steps] {
-		migration, err := m.getMigration(migrationData.version, directionDown)
+		migration, err := m.getMigration(migrationData.version, DirectionDown)
 		if err == nil {
 			migrations = append(migrations, migration)
 		} else {
@@ -206,7 +206,7 @@ func (m *Migrator) run(migration *Migration) error {
 	}
 
 	if strings.TrimSpace(string(query)) == "" {
-		if migration.Direction == directionUp || (migration.Direction == directionDown && !m.AllowMissingDowns) {
+		if migration.Direction == DirectionUp || (migration.Direction == DirectionDown && !m.AllowMissingDowns) {
 			return ErrEmptyQuery
 		}
 		if m.ErrorsCh != nil {
@@ -222,7 +222,7 @@ func (m *Migrator) run(migration *Migration) error {
 		}
 		return nil
 	}
-	if migration.Direction == directionDown {
+	if migration.Direction == DirectionDown {
 		afterFunc = func(tx *sql.Tx) error {
 			err := m.dbWrapper.deleteMigrationVersion(migration.Version, tx)
 			if err != nil {
@@ -254,7 +254,7 @@ func (m *Migrator) LatestVersionMigration() (*Migration, error) {
 		return nil, nil
 	}
 
-	migration, err := m.getMigration(ts, directionUp)
+	migration, err := m.getMigration(ts, DirectionUp)
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't get latest migration with version %s", ts.Format(TimestampFormat))
 	}
@@ -272,7 +272,7 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 		return nil, nil
 	}
 
-	migration, err := m.getMigration(ts, directionUp)
+	migration, err := m.getMigration(ts, DirectionUp)
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't get last applied migration with version %s", ts.Format(TimestampFormat))
 	}
@@ -281,7 +281,7 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 }
 
 func (m *Migrator) StatusList() ([]*Migration, error) {
-	foundMigrations, err := m.findMigrations(directionUp)
+	foundMigrations, err := m.findMigrations(DirectionUp)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get migrations")
 	}
@@ -349,7 +349,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 }
 
 func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
-	foundMigrations, err := m.findMigrations(directionUp)
+	foundMigrations, err := m.findMigrations(DirectionUp)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get migrations")
 	}

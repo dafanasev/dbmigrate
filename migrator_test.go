@@ -53,37 +53,37 @@ func Test_Migrator_getMigration(t *testing.T) {
 	defer os.Remove(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
 
 	// does not exist at all
-	_, err := m.getMigration(time.Date(2018, 9, 10, 11, 12, 13, 0, time.UTC), directionUp)
+	_, err := m.getMigration(time.Date(2018, 9, 10, 11, 12, 13, 0, time.UTC), DirectionUp)
 	assert.Contains(t, err.Error(), "does not exist")
 
 	// does not exist for needed direction
 	os.Rename(filepath.Join(migrationsDir, "20180918200453.correct.down.sql"), "20180918200453.correct.down.sql")
 	defer os.Rename("20180918200453.correct.down.sql", filepath.Join(migrationsDir, "20180918200453.correct.down.sql"))
-	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), directionDown)
+	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC), DirectionDown)
 	assert.Contains(t, err.Error(), "does not exist")
 
 	// does not exist for used engine
-	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 7, 42, 0, time.UTC), directionUp)
+	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 7, 42, 0, time.UTC), DirectionUp)
 	assert.Contains(t, err.Error(), "does not exist")
 
 	// multiple migrations for the timestamp
-	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), directionUp)
+	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), DirectionUp)
 	assert.Contains(t, err.Error(), "should be only one")
 
 	// correct for any engine
 	ts := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
-	migration, err := m.getMigration(ts, directionUp)
+	migration, err := m.getMigration(ts, DirectionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected := &Migration{Version: ts, Name: "correct", Direction: directionUp}
+	expected := &Migration{Version: ts, Name: "correct", Direction: DirectionUp}
 	assert.Equal(t, expected, migration)
 
 	// correct for the isSpecific engine
 	ts = time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC)
-	migration, err = m.getMigration(ts, directionUp)
+	migration, err = m.getMigration(ts, DirectionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected = &Migration{Version: ts, Name: "specific_engine_correct", Direction: directionUp, Engine: "sqlite"}
+	expected = &Migration{Version: ts, Name: "specific_engine_correct", Direction: DirectionUp, Engine: "sqlite"}
 	assert.Equal(t, expected, migration)
 }
 
@@ -93,11 +93,11 @@ func Test_Migrator_findMigrations(t *testing.T) {
 	defer m.Close()
 
 	os.Create(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
-	_, err := m.findMigrations(directionUp)
+	_, err := m.findMigrations(DirectionUp)
 	assert.Contains(t, err.Error(), "are duplicated")
 	os.Remove(filepath.Join(migrationsDir, "20180918200632.duplicate.up.sql"))
 
-	migrations, err := m.findMigrations(directionUp)
+	migrations, err := m.findMigrations(DirectionUp)
 	require.NoError(t, err)
 	assert.Len(t, migrations, 3)
 }
@@ -108,7 +108,7 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 
 	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()
-	migrations, _ := m.findMigrations(directionUp)
+	migrations, _ := m.findMigrations(DirectionUp)
 
 	for i := 0; i < 4; i++ {
 		unappliedMigrations, err := m.unappliedMigrations()

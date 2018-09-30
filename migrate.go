@@ -32,12 +32,12 @@ type Direction int
 
 const (
 	directionError = Direction(iota)
-	directionUp
-	directionDown
+	DirectionUp
+	DirectionDown
 )
 
 func (d Direction) String() string {
-	if d == directionUp {
+	if d == DirectionUp {
 		return "up"
 	}
 	return "down"

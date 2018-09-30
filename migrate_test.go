@@ -49,9 +49,9 @@ func removeTempStuff() {
 }
 
 func Test_Direction_String(t *testing.T) {
-	d := directionUp
+	d := DirectionUp
 	assert.Equal(t, "up", d.String())
 
-	d = directionDown
+	d = DirectionDown
 	assert.Equal(t, "down", d.String())
 }

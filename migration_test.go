@@ -19,7 +19,7 @@ func Test_byTimestamp(t *testing.T) {
 
 func Test_Migration_FileName(t *testing.T) {
 	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
-	m := &Migration{Version: ts, Name: "test_migration", Direction: directionUp}
+	m := &Migration{Version: ts, Name: "test_migration", Direction: DirectionUp}
 	assert.Equal(t, "20100607080910.test_migration.up.sql", m.FileName())
 
 	m.Engine = "postgres"
@@ -60,7 +60,7 @@ func Test_migrationFromFileName(t *testing.T) {
 		assert.Equal(t, ts, m.Version)
 		parts := strings.Split(fname, ".")
 		assert.Equal(t, parts[1], m.Name)
-		assert.Equal(t, directionUp, m.Direction)
+		assert.Equal(t, DirectionUp, m.Direction)
 		if strings.ToLower(parts[3]) == "sql" {
 			assert.Empty(t, m.Engine)
 		} else {

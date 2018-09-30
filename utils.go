@@ -41,9 +41,9 @@ func isValidString(s string, validOptions []string) bool {
 func DirectionFromString(s string) (Direction, error) {
 	switch strings.ToLower(s) {
 	case "up":
-		return directionUp, nil
+		return DirectionUp, nil
 	case "down":
-		return directionDown, nil
+		return DirectionDown, nil
 	default:
 		return directionError, errors.Errorf("can't parse direction from string %s", s)
 	}

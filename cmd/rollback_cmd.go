@@ -38,7 +38,7 @@ var rollbackCmd = &cobra.Command{
 		} else {
 			n, err = migrator.RollbackSteps(steps)
 		}
-		done <- struct{}{}
+		close(done)
 		if err != nil {
 			return errors.Wrap(err, "can't rollback")
 		}

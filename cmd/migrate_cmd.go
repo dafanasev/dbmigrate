@@ -32,7 +32,7 @@ var migrateCmd = &cobra.Command{
 		}()
 
 		n, err := migrator.MigrateSteps(steps)
-		done <- struct{}{}
+		close(done)
 		if err != nil {
 			return errors.Wrap(err, "can't migrate")
 		}

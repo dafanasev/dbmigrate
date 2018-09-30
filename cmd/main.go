@@ -77,11 +77,12 @@ func init() {
 }
 
 func main() {
-	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd)
+	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd, redoCmd)
 	err := migrateCmd.Execute()
 	if err != nil {
 		exitWithError(err)
 	}
+	migrator.Close()
 }
 
 func setupViper() (*viper.Viper, error) {

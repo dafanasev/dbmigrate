@@ -43,13 +43,13 @@ func Test_DirectionFromString(t *testing.T) {
 	for _, s := range []string{"UP", "Up", "up"} {
 		d, err := DirectionFromString(s)
 		require.NoError(t, err)
-		assert.Equal(t, directionUp, d)
+		assert.Equal(t, DirectionUp, d)
 	}
 
 	for _, s := range []string{"DOWN", "DoWn", "down"} {
 		d, err := DirectionFromString(s)
 		require.NoError(t, err)
-		assert.Equal(t, directionDown, d)
+		assert.Equal(t, DirectionDown, d)
 	}
 
 	for _, s := range []string{"down!", "1up", "rnd", " ", ""} {
