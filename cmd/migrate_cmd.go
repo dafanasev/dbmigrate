@@ -24,7 +24,7 @@ var migrateCmd = &cobra.Command{
 				case err := <-migrator.ErrorsCh:
 					fmt.Fprintln(os.Stderr, errors.Wrap(err, "migration error"))
 				case migration := <-migrator.MigrationsCh:
-					fmt.Printf("migration %s has been successfully executed\n", migration.Name)
+					fmt.Printf("migration %s has been successfully applied\n", migration.FileName())
 				case <-done:
 					return
 				}
@@ -37,7 +37,7 @@ var migrateCmd = &cobra.Command{
 			return errors.Wrap(err, "can't migrate")
 		}
 
-		fmt.Printf("%d migrations successfully executed\n", n)
+		fmt.Printf("%d migrations successfully applied\n", n)
 
 		return nil
 	},

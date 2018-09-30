@@ -77,7 +77,7 @@ func init() {
 }
 
 func main() {
-	migrateCmd.AddCommand(generateCmd, statusCmd)
+	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd)
 	err := migrateCmd.Execute()
 	if err != nil {
 		exitWithError(err)
