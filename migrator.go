@@ -120,10 +120,12 @@ func (m *Migrator) Close() error {
 
 	if m.MigrationsCh != nil {
 		close(m.MigrationsCh)
+		m.MigrationsCh = nil
 	}
 
 	if m.ErrorsCh != nil {
 		close(m.ErrorsCh)
+		m.ErrorsCh = nil
 	}
 
 	return nil
@@ -280,7 +282,7 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 	return migration, nil
 }
 
-func (m *Migrator) StatusList() ([]*Migration, error) {
+func (m *Migrator) Status() ([]*Migration, error) {
 	foundMigrations, err := m.findMigrations(DirectionUp)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get migrations")

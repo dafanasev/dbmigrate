@@ -15,7 +15,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "database schema status",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		migrations, err := migrator.StatusList()
+		migrations, err := migrator.Status()
 		if err != nil {
 			return errors.Wrap(err, "can't get migrations status")
 		}

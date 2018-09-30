@@ -3,7 +3,6 @@ package dbmigrate
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -42,6 +41,8 @@ func Test_Migrator_Close(t *testing.T) {
 	require.NoError(t, err)
 	err = m.Close()
 	assert.NoError(t, err)
+	assert.Nil(t, m.MigrationsCh)
+	assert.Nil(t, m.ErrorsCh)
 }
 
 func Test_Migrator_getMigration(t *testing.T) {
@@ -377,27 +378,48 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 		descr  string
 		engine string
 	}{
-		{" test  migration \n ", ""},
-		{" test\tspecific migration \n ", "sqlite"},
+		{" test  Migration \n ", ""},
+		{" test\tSpecific migration \n ", "sqlite"},
 	}
 	for _, data := range testData {
 		fpaths, err := m.GenerateMigration(data.descr, data.engine)
 		assert.NoError(t, err)
 		for _, fpath := range fpaths {
-			descrPart := "test_migration"
-			if data.engine != "" {
-				descrPart = "test_specific_migration"
+			if data.engine == "" {
+				assert.Contains(t, fpath, "test_migration")
+				assert.Regexp(t, `^dbmigrations/\d+\.[_\w]+\.(down|up)\.sql$`, fpath)
+			} else {
+				assert.Contains(t, fpath, "test_specific_migration")
+				assert.Contains(t, fpath, "sqlite.sql")
+				assert.Regexp(t, `^dbmigrations/\d+\.[_\w]+\.(down|up)\.sqlite\.sql$`, fpath)
 			}
-			assert.Contains(t, fpath, descrPart)
-			assert.Contains(t, fpath, strings.Join([]string{data.engine, "sql"}, "."))
 			assert.True(t, FileExists(fpath))
 		}
 
 		_, err = m.GenerateMigration(data.descr, data.engine)
 		assert.Contains(t, err.Error(), "already exists")
 
-		for _, fname := range fpaths {
-			os.Remove(filepath.Join(migrationsDir, fname))
+		for _, fpath := range fpaths {
+			os.Remove(fpath)
+		}
+	}
+}
+
+func Test_Migrator_Status(t *testing.T) {
+	os.Remove("tets.db")
+
+	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
+	defer m.Close()
+
+	m.MigrateSteps(1)
+
+	migrations, err := m.Status()
+	require.NoError(t, err)
+	for i, migration := range migrations {
+		if i == 0 {
+			assert.NotEqual(t, time.Time{}, migration.AppliedAt)
+		} else {
+			assert.Equal(t, time.Time{}, migration.AppliedAt)
 		}
 	}
 }

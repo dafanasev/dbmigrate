@@ -105,10 +105,16 @@ func Test_dbWrapper(t *testing.T) {
 		mds, err = w.appliedMigrationsData("version DESC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time{baseTs.Add(time.Second), baseTs}, []time.Time{mds[0].version, mds[1].version})
+		for _, md := range mds {
+			assert.NotEqual(t, time.Time{}, md.appliedAt)
+		}
 
 		mds, err = w.appliedMigrationsData("version ASC")
 		assert.NoError(t, err)
 		assert.Equal(t, []time.Time{baseTs, baseTs.Add(time.Second)}, []time.Time{mds[0].version, mds[1].version})
+		for _, md := range mds {
+			assert.NotEqual(t, time.Time{}, md.appliedAt)
+		}
 
 		err = w.deleteMigrationVersion(baseTs.Add(time.Second), nil)
 		assert.NoError(t, err)
