@@ -280,6 +280,29 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 	return migration, nil
 }
 
+func (m *Migrator) StatusList() ([]*Migration, error) {
+	foundMigrations, err := m.findMigrations(directionUp)
+	if err != nil {
+		return nil, errors.Wrap(err, "can't get migrations")
+	}
+
+	appliedMigrationsData, err := m.dbWrapper.appliedMigrationsData("version ASC")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, m := range foundMigrations {
+		for _, migrationData := range appliedMigrationsData {
+			if m.Version == migrationData.version {
+				m.AppliedAt = migrationData.appliedAt
+				break
+			}
+		}
+	}
+
+	return foundMigrations, nil
+}
+
 // findMigrations finds all valid migrations in the migrations dir
 func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	var migrations []*Migration
