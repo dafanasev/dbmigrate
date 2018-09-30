@@ -14,9 +14,9 @@ type Migration struct {
 	// Version when the migration was created
 	Version   time.Time
 	Name      string
-	appliedAt time.Time
-	direction Direction
-	engine    string
+	AppliedAt time.Time
+	Direction Direction
+	Engine    string
 }
 
 type byTimestamp []*Migration
@@ -25,10 +25,10 @@ func (bts byTimestamp) Len() int           { return len(bts) }
 func (bts byTimestamp) Swap(i, j int)      { bts[i], bts[j] = bts[j], bts[i] }
 func (bts byTimestamp) Less(i, j int) bool { return bts[i].Version.Unix() < bts[j].Version.Unix() }
 
-func (m *Migration) fileName() string {
-	parts := []string{m.Version.Format(timestampFormat), m.Name, m.direction.String()}
-	if m.engine != "" {
-		parts = append(parts, m.engine)
+func (m *Migration) FileName() string {
+	parts := []string{m.Version.Format(timestampFormat), m.Name, m.Direction.String()}
+	if m.Engine != "" {
+		parts = append(parts, m.Engine)
 	}
 	parts = append(parts, "sql")
 
@@ -36,7 +36,7 @@ func (m *Migration) fileName() string {
 }
 
 func (m *Migration) HumanName() string {
-	return fmt.Sprintf("%s %s", m.Version.Format(printTimestampFormat), m.Name)
+	return strings.Replace(m.Name, "_", " ", -1)
 }
 
 func migrationFromFileName(fname string) (*Migration, error) {
@@ -70,5 +70,5 @@ func migrationFromFileName(fname string) (*Migration, error) {
 		engine = strings.ToLower(parts[3])
 	}
 
-	return &Migration{Version: ts, Name: name, direction: direction, engine: engine}, nil
+	return &Migration{Version: ts, Name: name, Direction: direction, Engine: engine}, nil
 }

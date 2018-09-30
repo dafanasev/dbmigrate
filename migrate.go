@@ -10,7 +10,7 @@ const migrationsDir = "dbmigrations"
 
 const (
 	timestampFormat      = "20060102150405"
-	printTimestampFormat = "2006.01.02 15:04:05"
+	PrintTimestampFormat = "2006.01.02 15:04:05"
 )
 
 type Settings struct {

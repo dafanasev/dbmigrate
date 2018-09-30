@@ -145,10 +145,10 @@ func (m *Migrator) MigrateSteps(steps int) (int, error) {
 
 	appliedAt := time.Now().UTC()
 	for i, migration := range migrations[:steps] {
-		migration.appliedAt = appliedAt
+		migration.AppliedAt = appliedAt
 		err = m.run(migration)
 		if err != nil {
-			return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
+			return i, errors.Wrapf(err, "can't execute migration %s", migration.FileName())
 		}
 	}
 	return len(migrations[:steps]), nil
@@ -178,7 +178,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 		if err == nil {
 			migrations = append(migrations, migration)
 		} else {
-			err = errors.Wrapf(err, "can't get migration for version %s", migrationData.version.Format(printTimestampFormat))
+			err = errors.Wrapf(err, "can't get migration for version %s", migrationData.version.Format(PrintTimestampFormat))
 			if !m.AllowMissingDowns {
 				return 0, err
 			}
@@ -191,22 +191,22 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 	for i, migration := range migrations {
 		err = m.run(migration)
 		if err != nil {
-			return i, errors.Wrapf(err, "can't execute migration %s", migration.HumanName())
+			return i, errors.Wrapf(err, "can't execute migration %s", migration.FileName())
 		}
 	}
 	return len(migrations), nil
 }
 
 func (m *Migrator) run(migration *Migration) error {
-	fpath := filepath.Join(migrationsDir, migration.fileName())
+	fpath := filepath.Join(migrationsDir, migration.FileName())
 
 	query, err := ioutil.ReadFile(fpath)
 	if err != nil {
-		return errors.Wrapf(err, "can't read file for migration %s", migration.HumanName())
+		return errors.Wrapf(err, "can't read migration %s", migration.FileName())
 	}
 
 	if strings.TrimSpace(string(query)) == "" {
-		if migration.direction == directionUp || (migration.direction == directionDown && !m.AllowMissingDowns) {
+		if migration.Direction == directionUp || (migration.Direction == directionDown && !m.AllowMissingDowns) {
 			return ErrEmptyQuery
 		}
 		if m.ErrorsCh != nil {
@@ -216,17 +216,17 @@ func (m *Migrator) run(migration *Migration) error {
 	}
 
 	afterFunc := func(tx *sql.Tx) error {
-		err = m.dbWrapper.insertMigrationVersion(migration.Version, migration.appliedAt, tx)
+		err = m.dbWrapper.insertMigrationVersion(migration.Version, migration.AppliedAt, tx)
 		if err != nil {
-			return errors.Wrapf(err, "can't insert version for migration %s", migration.HumanName())
+			return errors.Wrapf(err, "can't insert version for migration %s", migration.FileName())
 		}
 		return nil
 	}
-	if migration.direction == directionDown {
+	if migration.Direction == directionDown {
 		afterFunc = func(tx *sql.Tx) error {
 			err := m.dbWrapper.deleteMigrationVersion(migration.Version, tx)
 			if err != nil {
-				return errors.Wrapf(err, "can't delete timestamp %s from db", migration.Version.Format(printTimestampFormat))
+				return errors.Wrapf(err, "can't delete timestamp %s from db", migration.Version.Format(PrintTimestampFormat))
 			}
 			return nil
 		}
@@ -234,7 +234,7 @@ func (m *Migrator) run(migration *Migration) error {
 
 	err = m.dbWrapper.execMigrationQueries(string(query), afterFunc)
 	if err != nil {
-		return errors.Wrapf(err, "can't exec query for migration %s", migration.HumanName())
+		return errors.Wrapf(err, "can't exec query for migration %s", migration.FileName())
 	}
 
 	if m.MigrationsCh != nil {
@@ -302,12 +302,12 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 			return nil
 		}
 
-		if migration.direction != direction {
+		if migration.Direction != direction {
 			return nil
 		}
 
 		// migration that should be run on isSpecific dbWrapper only
-		if migration.engine != "" && migration.engine != m.Engine {
+		if migration.Engine != "" && migration.Engine != m.Engine {
 			return nil
 		}
 
@@ -318,7 +318,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	sort.Sort(byTimestamp(migrations))
 	for i := 0; i < len(migrations)-1; i++ {
 		if migrations[i].Version == migrations[i+1].Version {
-			return nil, errors.Errorf("migrations with %s are duplicated", migrations[i].Version.Format(printTimestampFormat))
+			return nil, errors.Errorf("migrations with %s are duplicated", migrations[i].Version.Format(PrintTimestampFormat))
 		}
 	}
 
@@ -326,7 +326,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 }
 
 func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
-	migrations, err := m.findMigrations(directionUp)
+	foundMigrations, err := m.findMigrations(directionUp)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't get migrations")
 	}
@@ -337,7 +337,7 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 	}
 
 	var unappliedMigrations []*Migration
-	for _, m := range migrations {
+	for _, m := range foundMigrations {
 		found := false
 		for _, migrationData := range appliedMigrationsData {
 			if m.Version == migrationData.version {

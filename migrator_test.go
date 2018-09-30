@@ -75,7 +75,7 @@ func Test_Migrator_getMigration(t *testing.T) {
 	migration, err := m.getMigration(ts, directionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected := &Migration{Version: ts, Name: "correct", direction: directionUp}
+	expected := &Migration{Version: ts, Name: "correct", Direction: directionUp}
 	assert.Equal(t, expected, migration)
 
 	// correct for the isSpecific engine
@@ -83,7 +83,7 @@ func Test_Migrator_getMigration(t *testing.T) {
 	migration, err = m.getMigration(ts, directionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected = &Migration{Version: ts, Name: "specific_engine_correct", direction: directionUp, engine: "sqlite"}
+	expected = &Migration{Version: ts, Name: "specific_engine_correct", Direction: directionUp, Engine: "sqlite"}
 	assert.Equal(t, expected, migration)
 }
 
@@ -198,7 +198,7 @@ func Test_Migrator_run(t *testing.T) {
 
 	migration, _ := migrationFromFileName("20180918100423.incorrect.up.sql")
 	err := m.run(migration)
-	assert.Contains(t, err.Error(), "can't read file for migration")
+	assert.Contains(t, err.Error(), "can't read migration")
 
 	migration, _ = migrationFromFileName("20180918200742.wrong_engine.up.postgres.sql")
 	err = m.run(migration)

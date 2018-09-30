@@ -17,19 +17,19 @@ func Test_byTimestamp(t *testing.T) {
 	assert.Equal(t, []*Migration{{Version: ts1}, {Version: ts2}}, migrations)
 }
 
-func Test_Migration_fileName(t *testing.T) {
+func Test_Migration_FileName(t *testing.T) {
 	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
-	m := &Migration{Version: ts, Name: "test_migration", direction: directionUp}
-	assert.Equal(t, "20100607080910.test_migration.up.sql", m.fileName())
+	m := &Migration{Version: ts, Name: "test_migration", Direction: directionUp}
+	assert.Equal(t, "20100607080910.test_migration.up.sql", m.FileName())
 
-	m.engine = "postgres"
-	assert.Equal(t, "20100607080910.test_migration.up.postgres.sql", m.fileName())
+	m.Engine = "postgres"
+	assert.Equal(t, "20100607080910.test_migration.up.postgres.sql", m.FileName())
 }
 
 func Test_Migration_HumanName(t *testing.T) {
 	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
 	m := &Migration{Version: ts, Name: "test_migration"}
-	assert.Equal(t, "2010.06.07 08:09:10 test_migration", m.HumanName())
+	assert.Equal(t, "test migration", m.HumanName())
 }
 
 func Test_migrationFromFileName(t *testing.T) {
@@ -60,11 +60,11 @@ func Test_migrationFromFileName(t *testing.T) {
 		assert.Equal(t, ts, m.Version)
 		parts := strings.Split(fname, ".")
 		assert.Equal(t, parts[1], m.Name)
-		assert.Equal(t, directionUp, m.direction)
+		assert.Equal(t, directionUp, m.Direction)
 		if strings.ToLower(parts[3]) == "sql" {
-			assert.Empty(t, m.engine)
+			assert.Empty(t, m.Engine)
 		} else {
-			assert.Equal(t, strings.ToLower(parts[3]), m.engine)
+			assert.Equal(t, strings.ToLower(parts[3]), m.Engine)
 		}
 	}
 }
