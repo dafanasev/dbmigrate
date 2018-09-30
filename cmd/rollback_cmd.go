@@ -17,6 +17,7 @@ var rollbackCmd = &cobra.Command{
 	Short: "rollback database schema",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		done := make(chan struct{})
+		gdone := make(chan struct{})
 
 		go func() {
 			for {
@@ -26,6 +27,7 @@ var rollbackCmd = &cobra.Command{
 				case migration := <-migrator.MigrationsCh:
 					fmt.Printf("migration %s has been successfully rolled back\n", migration.FileName())
 				case <-done:
+					close(gdone)
 					return
 				}
 			}
@@ -43,6 +45,7 @@ var rollbackCmd = &cobra.Command{
 			return errors.Wrap(err, "can't rollback")
 		}
 
+		<-gdone
 		fmt.Printf("%d migrations successfully rolled back\n", n)
 
 		return nil

@@ -129,10 +129,7 @@ func (w *dbWrapper) appliedMigrationsData(order string) ([]*migrationData, error
 	defer rows.Close()
 
 	var mds []*migrationData
-	var (
-		version   string
-		appliedAt string
-	)
+	var version, appliedAt string
 	for rows.Next() {
 		err = rows.Scan(&version, &appliedAt)
 		if err != nil {

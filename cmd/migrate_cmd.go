@@ -17,6 +17,7 @@ var migrateCmd = &cobra.Command{
 	Short: "migrate database schema",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		done := make(chan struct{})
+		gdone := make(chan struct{})
 
 		go func() {
 			for {
@@ -26,6 +27,7 @@ var migrateCmd = &cobra.Command{
 				case migration := <-migrator.MigrationsCh:
 					fmt.Printf("migration %s has been successfully applied\n", migration.FileName())
 				case <-done:
+					close(gdone)
 					return
 				}
 			}
@@ -37,6 +39,7 @@ var migrateCmd = &cobra.Command{
 			return errors.Wrap(err, "can't migrate")
 		}
 
+		<-gdone
 		fmt.Printf("%d migrations successfully applied\n", n)
 
 		return nil

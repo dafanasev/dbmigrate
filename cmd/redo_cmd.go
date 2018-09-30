@@ -18,6 +18,7 @@ var redoCmd = &cobra.Command{
 	Short: "redo last batch",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		done := make(chan struct{})
+		gdone := make(chan struct{})
 
 		go func() {
 			for {
@@ -32,6 +33,7 @@ var redoCmd = &cobra.Command{
 						fmt.Printf("migration %s has been successfully rolled back\n", migration.FileName())
 					}
 				case <-done:
+					close(gdone)
 					return
 				}
 			}
@@ -50,6 +52,7 @@ var redoCmd = &cobra.Command{
 			return errors.Wrap(err, "can't redo: can't migrate")
 		}
 
+		<-gdone
 		fmt.Printf("%d migrations successfully reapplied\n", n)
 
 		return nil
