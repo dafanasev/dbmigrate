@@ -40,12 +40,12 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 
 	m := &Migrator{Settings: settings}
 
-	provider, ok := providers[settings.Engine]
+	p, ok := providers[settings.Engine]
 	if !ok {
 		return nil, errors.Errorf("unknown database engine %s", settings.Engine)
 	}
 
-	m.dbWrapper = newDBWrapper(settings, provider)
+	m.dbWrapper = newDBWrapper(settings, p)
 	err := m.dbWrapper.open()
 	if err != nil {
 		return nil, errors.Wrap(err, "can't create database connection")
@@ -310,7 +310,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	var migrations []*Migration
 	migrationsDirPath := filepath.Join(m.projectDir, migrationsDir)
 
-	filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -339,6 +339,9 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 		migrations = append(migrations, migration)
 		return nil
 	})
+	if err != nil {
+		return nil, errors.Wrap(err, "can't scan migrations directory")
+	}
 
 	sort.Sort(byTimestamp(migrations))
 	for i := 0; i < len(migrations)-1; i++ {

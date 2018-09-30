@@ -9,12 +9,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const enginesNoOptDefVal = "currentEngine"
+
 var migrationsGeneratorEngines []string
 
 func init() {
-	generateCmd.Flags().StringSliceVarP(&migrationsGeneratorEngines, "genengines", "g", nil, "specific engine")
+	generateCmd.Flags().StringSliceVarP(&migrationsGeneratorEngines, "engines", "g", nil, "specific engines")
 	// if flag is set without an option use this placeholder to later set specific engine to the one from migrator settings
-	generateCmd.Flags().Lookup("genengines").NoOptDefVal = "current"
+	generateCmd.Flags().Lookup("engines").NoOptDefVal = enginesNoOptDefVal
 }
 
 var generateCmd = &cobra.Command{
@@ -22,7 +24,7 @@ var generateCmd = &cobra.Command{
 	Short: "generate migration",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(migrationsGeneratorEngines) > 0 && migrationsGeneratorEngines[0] != "all" && migrationsGeneratorEngines[0] != "current" {
+		if len(migrationsGeneratorEngines) > 0 && migrationsGeneratorEngines[0] != "all" && migrationsGeneratorEngines[0] != enginesNoOptDefVal {
 			for _, engine := range migrationsGeneratorEngines {
 				if !dbmigrate.EngineExists(engine) {
 					return errors.Errorf("can't generate migration, engines %s is not exists/supported", engine)
@@ -35,7 +37,7 @@ var generateCmd = &cobra.Command{
 			migrationsGeneratorEngines = []string{""}
 		}
 
-		if len(migrationsGeneratorEngines) == 1 && migrationsGeneratorEngines[0] == "current" {
+		if len(migrationsGeneratorEngines) == 1 && migrationsGeneratorEngines[0] == enginesNoOptDefVal {
 			migrationsGeneratorEngines[0] = migrator.Engine
 		}
 

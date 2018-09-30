@@ -33,12 +33,6 @@ func Test_FileExists(t *testing.T) {
 	assert.True(t, FileExists(filepath.Join(testDir(), "file")))
 }
 
-func Test_isValidString(t *testing.T) {
-	validOptions := []string{"one", "two", "three"}
-	assert.True(t, isValidString("one", validOptions))
-	assert.False(t, isValidString("four", validOptions))
-}
-
 func Test_DirectionFromString(t *testing.T) {
 	for _, s := range []string{"UP", "Up", "up"} {
 		d, err := DirectionFromString(s)

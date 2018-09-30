@@ -2,22 +2,14 @@ package dbmigrate
 
 var providers = make(map[string]provider)
 
-type dsnProvider interface {
+type provider interface {
+	driver() string
 	dsn(settings *Settings) (string, error)
+	hasTableQuery() string
 }
 
 type placeholdersProvider interface {
 	setPlaceholders(string) string
-}
-
-type sqlProvider interface {
-	hasTableQuery() string
-}
-
-type provider interface {
-	driver() string
-	dsnProvider
-	sqlProvider
 }
 
 type defaultProvider struct{}

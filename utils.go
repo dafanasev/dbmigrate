@@ -25,17 +25,6 @@ func FileExists(fpath string) bool {
 	return true
 }
 
-// isValidString checks whether the given string is the one of passed options,
-// case insensible
-func isValidString(s string, validOptions []string) bool {
-	for _, v := range validOptions {
-		if v == strings.ToLower(s) {
-			return true
-		}
-	}
-	return false
-}
-
 // DirectionFromString tries to build Direction from string,
 // checking for valid ones
 func DirectionFromString(s string) (Direction, error) {

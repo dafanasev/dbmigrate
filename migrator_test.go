@@ -13,11 +13,11 @@ import (
 func Test_NewMigrator(t *testing.T) {
 	os.Remove("test.db")
 	s := &Settings{}
-	m, err := NewMigrator(s)
+	_, err := NewMigrator(s)
 	assert.EqualError(t, err, "database engine not specified")
 
 	s.Engine = "nosql"
-	m, err = NewMigrator(s)
+	_, err = NewMigrator(s)
 	assert.EqualError(t, err, "database name not specified")
 
 	s.Database = "test.db"
@@ -26,7 +26,7 @@ func Test_NewMigrator(t *testing.T) {
 	assert.Contains(t, err.Error(), "unknown database engine")
 
 	s.Engine = "sqlite"
-	m, err = NewMigrator(s)
+	m, err := NewMigrator(s)
 	require.NoError(t, err)
 	assert.Equal(t, "dbmigrations", migrationsDir)
 	assert.Equal(t, "migrations", m.MigrationsTable)

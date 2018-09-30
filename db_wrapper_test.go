@@ -78,8 +78,8 @@ func Test_dbWrapper(t *testing.T) {
 
 		baseTs := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
 		now := time.Now().UTC().Truncate(time.Second)
-		for n := 0; n < 2; n++ {
-			err = w.insertMigrationVersion(baseTs.Add(time.Duration(n)*time.Second), now, nil)
+		for i := 0; i < 2; i++ {
+			err = w.insertMigrationVersion(baseTs.Add(time.Duration(i)*time.Second), now, nil)
 			assert.NoError(t, err)
 		}
 
