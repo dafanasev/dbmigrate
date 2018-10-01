@@ -46,14 +46,21 @@ var redoCmd = &cobra.Command{
 			close(done)
 			return errors.Wrap(err, "can't redo: can't rollback")
 		}
+		if n == 0 {
+			close(done)
+			<-gdone
+			fmt.Println("there are no migrations to reapply")
+			return nil
+		}
+
 		n, err = migrator.MigrateSteps(n)
 		close(done)
+
+		<-gdone
 		if err != nil {
 			return errors.Wrap(err, "can't redo: can't migrate")
 		}
-
-		<-gdone
-		fmt.Printf("%d migrations successfully reapplied\n", n)
+		fmt.Printf("%d %s successfully reapplied\n", n, pluralize("migration", n))
 
 		return nil
 	},

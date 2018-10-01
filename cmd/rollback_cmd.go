@@ -41,12 +41,17 @@ var rollbackCmd = &cobra.Command{
 			n, err = migrator.RollbackSteps(steps)
 		}
 		close(done)
+
+		<-gdone
 		if err != nil {
 			return errors.Wrap(err, "can't rollback")
 		}
 
-		<-gdone
-		fmt.Printf("%d migrations successfully rolled back\n", n)
+		if n == 0 {
+			fmt.Println("there are no migrations to rollback")
+			return nil
+		}
+		fmt.Printf("%d %s successfully rolled back\n", n, pluralize("migration", n))
 
 		return nil
 	},

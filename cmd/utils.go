@@ -14,3 +14,10 @@ func exitWithError(err error) {
 	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
 }
+
+func pluralize(s string, n int) string {
+	if n != 1 {
+		return s + "s"
+	}
+	return s
+}

@@ -35,12 +35,17 @@ var migrateCmd = &cobra.Command{
 
 		n, err := migrator.MigrateSteps(steps)
 		close(done)
+
+		<-gdone
 		if err != nil {
 			return errors.Wrap(err, "can't migrate")
 		}
 
-		<-gdone
-		fmt.Printf("%d migrations successfully applied\n", n)
+		if n == 0 {
+			fmt.Println("there are no migrations to apply")
+			return nil
+		}
+		fmt.Printf("%d %s successfully applied\n", n, pluralize("migration", n))
 
 		return nil
 	},
