@@ -18,3 +18,15 @@ mysql:
     MYSQL_USER: dbmigrate
     MYSQL_PASSWORD: mysecretpassword
     MYSQL_DATABASE: migrate_test
+
+etcd:
+  image: elcolio/etcd
+  restart: always
+  ports:
+    - 2379:2379
+
+consul:
+  image: consul:latest
+  restart: always
+  ports:
+    - 8500:8500
