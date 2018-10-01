@@ -27,6 +27,11 @@ var statusCmd = &cobra.Command{
 			return appliedAt.Format(dbmigrate.PrintTimestampFormat)
 		}
 
+		if len(migrations) == 0 {
+			fmt.Println("No migrations exist yet")
+			return nil
+		}
+
 		isUpToDate := true
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"Name", "Version", "Applied at"})

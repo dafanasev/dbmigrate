@@ -3,12 +3,11 @@ package main
 import (
 	"github.com/dafanasev/dbmigrate"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 )
 
-var migrator *dbmigrate.Migrator
-
-var (
+type appFlags struct {
 	appName string
 	env     string
 
@@ -16,7 +15,15 @@ var (
 
 	kvsParamsStr      string
 	secretKeyRingPath string
+}
 
+var (
+	migrator *dbmigrate.Migrator
+	flags    *appFlags
+	steps    int
+)
+
+var migrateFlags struct {
 	engine            string
 	database          string
 	user              string
@@ -25,31 +32,31 @@ var (
 	port              int
 	migrationsTable   string
 	allowMissingDowns bool
-
-	steps int
-)
+}
 
 func init() {
-	migrateCmd.PersistentFlags().StringVarP(&appName, "appname", "a", "", "app name (used as prefix for env vars)")
-	migrateCmd.PersistentFlags().StringVarP(&env, "env", "e", "", "optional environment (to support more than one database)")
+	flags = &appFlags{}
 
-	migrateCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "dbmigrations", "config file (default is dbmigrations.yml)")
-	migrateCmd.PersistentFlags().StringVarP(&kvsParamsStr, "kvsparams", "k", "", "key value connection string, (provider://host:port/path.format")
-	migrateCmd.PersistentFlags().StringVarP(&secretKeyRingPath, "secretkeyring", "r", "", "secret key ring path")
+	migrateCmd.PersistentFlags().StringVarP(&flags.appName, "appname", "a", "", "app name (used as prefix for env vars)")
+	migrateCmd.PersistentFlags().StringVarP(&flags.env, "env", "e", "", "optional environment (to support more than one database)")
 
-	migrateCmd.PersistentFlags().StringVarP(&engine, "engine", "n", "", "database engine")
-	migrateCmd.PersistentFlags().StringVarP(&database, "database", "d", "", "database name")
-	migrateCmd.PersistentFlags().StringVarP(&user, "user", "u", "", "database user")
-	migrateCmd.PersistentFlags().StringVarP(&password, "password", "p", "", "database password")
-	migrateCmd.PersistentFlags().StringVarP(&host, "host", "b", "", "database host")
-	migrateCmd.PersistentFlags().IntVarP(&port, "port", "o", 0, "database port")
-	migrateCmd.PersistentFlags().StringVarP(&migrationsTable, "table", "t", "", "migrations table")
-	migrateCmd.PersistentFlags().BoolVarP(&allowMissingDowns, "missingdowns", "m", false, "allow missing down migrations")
+	migrateCmd.PersistentFlags().StringVarP(&flags.configFile, "config", "c", "dbmigrations", "config file (default is dbmigrations.yml)")
+	migrateCmd.PersistentFlags().StringVarP(&flags.kvsParamsStr, "kvsparams", "k", "", "key value connection string, (provider://host:port/path.format")
+	migrateCmd.PersistentFlags().StringVarP(&flags.secretKeyRingPath, "secretkeyring", "r", "", "secret key ring path")
+
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.engine, "engine", "n", "", "database engine")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.database, "database", "d", "", "database name")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.user, "user", "u", "", "database user")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.password, "password", "p", "", "database password")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.host, "host", "b", "", "database host")
+	migrateCmd.PersistentFlags().IntVarP(&migrateFlags.port, "port", "o", 0, "database port")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.migrationsTable, "table", "t", "", "migrations table")
+	migrateCmd.PersistentFlags().BoolVarP(&migrateFlags.allowMissingDowns, "missingdowns", "m", false, "allow missing down migrations")
 }
 
 func main() {
 	startErrStr := "can't start dbmigrate"
-	v, err := setupViper()
+	v, err := (&viperConfigurator{v: viper.GetViper(), flags: flags}).setup()
 	if err != nil {
 		exitWithError(errors.Wrap(err, startErrStr))
 	}
