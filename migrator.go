@@ -95,7 +95,7 @@ func (m *Migrator) GenerateMigration(descr string, engine string) ([]string, err
 		parts = append(parts, "sql")
 
 		fname := strings.Join(parts, ".")
-		fpath := filepath.Join(migrationsDir, fname)
+		fpath := filepath.Join(MigrationsDir, fname)
 
 		if FileExists(fpath) {
 			return nil, errors.Errorf("migration file %s already exists", fname)
@@ -200,7 +200,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 }
 
 func (m *Migrator) run(migration *Migration) error {
-	fpath := filepath.Join(migrationsDir, migration.FileName())
+	fpath := filepath.Join(MigrationsDir, migration.FileName())
 
 	query, err := ioutil.ReadFile(fpath)
 	if err != nil {
@@ -308,7 +308,7 @@ func (m *Migrator) Status() ([]*Migration, error) {
 // findMigrations finds all valid migrations in the migrations dir
 func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	var migrations []*Migration
-	migrationsDirPath := filepath.Join(m.projectDir, migrationsDir)
+	migrationsDirPath := filepath.Join(m.projectDir, MigrationsDir)
 
 	err := filepath.Walk(migrationsDirPath, func(mpath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -384,11 +384,11 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, error) {
 	timestampStr := ts.Format(TimestampFormat)
 
-	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", migrationsDir, timestampStr, direction))
+	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", MigrationsDir, timestampStr, direction))
 	files, _ := filepath.Glob(pattern)
 
 	if len(files) == 0 {
-		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", migrationsDir, timestampStr, direction, m.Engine))
+		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", MigrationsDir, timestampStr, direction, m.Engine))
 		files, _ = filepath.Glob(pattern)
 	}
 

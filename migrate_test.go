@@ -21,9 +21,9 @@ func createTempStuff() {
 	removeTempStuff()
 	os.MkdirAll("test/dir", os.ModeDir|os.ModePerm)
 	os.Create("test/file")
-	os.MkdirAll(migrationsDir, os.ModeDir|os.ModePerm)
+	os.MkdirAll(MigrationsDir, os.ModeDir|os.ModePerm)
 
-	os.MkdirAll(filepath.Join(migrationsDir, "subfolder"), os.ModeDir|os.ModePerm)
+	os.MkdirAll(filepath.Join(MigrationsDir, "subfolder"), os.ModeDir|os.ModePerm)
 
 	fileData := map[string]string{
 		"8234234.incorrect_name.noql.sql":                        "",
@@ -37,13 +37,13 @@ func createTempStuff() {
 		"20180918201019.specific_engine_correct.down.sqlite.sql": "DROP TABLE comments;\n DROP TABLE tags;",
 	}
 	for fname, content := range fileData {
-		ioutil.WriteFile(filepath.Join(migrationsDir, fname), []byte(content), 0644)
+		ioutil.WriteFile(filepath.Join(MigrationsDir, fname), []byte(content), 0644)
 	}
 }
 
 func removeTempStuff() {
 	os.RemoveAll("test")
-	os.RemoveAll(migrationsDir)
+	os.RemoveAll(MigrationsDir)
 	os.Remove("test.db")
 	os.Remove("migrate_test")
 }

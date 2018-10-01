@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const migrationsDir = "dbmigrations"
+const MigrationsDir = "dbmigrations"
 
 const (
 	TimestampFormat      = "20060102150405"
@@ -45,7 +45,7 @@ func (d Direction) String() string {
 
 // FindProjectDir recursively find project dir (the one that has migrations subdir)
 func FindProjectDir(fromDir string) (string, error) {
-	if DirExists(filepath.Join(fromDir, migrationsDir)) {
+	if DirExists(filepath.Join(fromDir, MigrationsDir)) {
 		return fromDir, nil
 	}
 

@@ -24,12 +24,12 @@ func Test_sqliteProvider_dsn(t *testing.T) {
 	_, err := p.dsn(s)
 	assert.EqualError(t, err, errDBNameNotProvided.Error())
 
-	os.Rename(migrationsDir, "!"+migrationsDir)
+	os.Rename(MigrationsDir, "!"+MigrationsDir)
 	s.Database = "test.db"
 	_, err = p.dsn(s)
 	assert.Error(t, err)
 
-	os.Rename("!"+migrationsDir, migrationsDir)
+	os.Rename("!"+MigrationsDir, MigrationsDir)
 
 	// from project root dir
 	for i, dir := range []string{"/some/absolute/path", ".", "..", "test"} {
@@ -46,7 +46,7 @@ func Test_sqliteProvider_dsn(t *testing.T) {
 
 	// from project subdir
 	wd, _ := os.Getwd()
-	os.Chdir(filepath.Join(wd, "dbmigrations"))
+	os.Chdir(filepath.Join(wd, MigrationsDir))
 
 	for _, dir := range []string{".", "..", "test"} {
 		s.Database = filepath.Join(dir, "test.db")
