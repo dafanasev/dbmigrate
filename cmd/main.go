@@ -40,7 +40,7 @@ func init() {
 	migrateCmd.PersistentFlags().StringVarP(&flags.appName, "appname", "a", "", "app name (used as prefix for env vars)")
 	migrateCmd.PersistentFlags().StringVarP(&flags.env, "env", "e", "", "optional environment (to support more than one database)")
 
-	migrateCmd.PersistentFlags().StringVarP(&flags.configFile, "config", "c", "dbmigrations", "config file (default is dbmigrations.yml)")
+	migrateCmd.PersistentFlags().StringVarP(&flags.configFile, "config", "c", "dbmigrate", "config file (default is dbmigrate.yml)")
 	migrateCmd.PersistentFlags().StringVarP(&flags.kvsParamsStr, "kvsparams", "k", "", "key value connection string, (provider://host:port/path.format")
 	migrateCmd.PersistentFlags().StringVarP(&flags.secretKeyRingPath, "secretkeyring", "r", "", "secret key ring path")
 
@@ -55,10 +55,10 @@ func init() {
 }
 
 func main() {
-	startErrStr := "can't start dbmigrate"
-	v, err := (&viperConfigurator{v: viper.GetViper(), flags: flags}).setup()
+	errStartStr := "can't start dbmigrate"
+	v, err := (&viperConfigurator{viper: viper.GetViper(), flags: flags}).configure()
 	if err != nil {
-		exitWithError(errors.Wrap(err, startErrStr))
+		exitWithError(errors.Wrap(err, errStartStr))
 	}
 
 	migrator, err = dbmigrate.NewMigrator(&dbmigrate.Settings{
@@ -73,7 +73,7 @@ func main() {
 		ErrorsCh:          make(chan error),
 	})
 	if err != nil {
-		exitWithError(errors.Wrapf(err, startErrStr))
+		exitWithError(errors.Wrapf(err, errStartStr))
 	}
 
 	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd, redoCmd)
