@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/dafanasev/dbmigrate"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,11 +17,13 @@ var dbmigrateConfigJson = []byte(`{"engine": "sqlite", "database": "test.db"}`)
 var envScopedDbmigrateConfigJson = []byte(`{"test": {"engine": "sqlite", "database": "test.db"}}`)
 
 func createConfigFiles() {
+	os.Mkdir(dbmigrate.MigrationsDir, os.ModePerm)
 	ioutil.WriteFile("dbmigrate.json", dbmigrateConfigJson, os.ModePerm)
 	ioutil.WriteFile("dbmigrate.test.json", envScopedDbmigrateConfigJson, os.ModePerm)
 }
 
 func removeConfigFiles() {
+	os.RemoveAll(dbmigrate.MigrationsDir)
 	os.Remove("dbmigrate.json")
 	os.Remove("dbmigrate.test.json")
 }
@@ -128,6 +131,9 @@ func Test_viperConfigurator_readFlags(t *testing.T) {
 }
 
 func Test_viperConfigurator_configure(t *testing.T) {
+	createConfigFiles()
+	defer removeConfigFiles()
+
 	vc := &viperConfigurator{viper: viper.New(), flags: &appFlags{}}
 	_, err := vc.configure()
 	require.NoError(t, err)

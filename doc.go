@@ -21,7 +21,8 @@ package dbmigrate
 
 	TODO:
 	* tests for CLI
-	* Dockerfile
+	* Dockerfile +
+ 	* CLI help
 	* comments
-	* Readme
+	* Readme/docs
 */
