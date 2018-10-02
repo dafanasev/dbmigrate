@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 // exitWithError prints an error to the terminal and terminates app with error
@@ -11,7 +13,7 @@ func exitWithError(err error) {
 		migrator.Close()
 	}
 
-	fmt.Fprintln(os.Stderr, err)
+	fmt.Fprintln(os.Stderr, errors.Wrap(err, "can't run dbmigrate"))
 	os.Exit(1)
 }
 

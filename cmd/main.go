@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/dafanasev/dbmigrate"
-	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 )
@@ -52,35 +52,37 @@ func init() {
 	migrateCmd.PersistentFlags().IntVarP(&migrateFlags.port, "port", "o", 0, "database port")
 	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.migrationsTable, "table", "t", "", "migrations table")
 	migrateCmd.PersistentFlags().BoolVarP(&migrateFlags.allowMissingDowns, "missingdowns", "m", false, "allow missing down migrations")
+
+	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd, redoCmd)
+
+	cobra.OnInitialize(func() {
+		v, err := (&viperConfigurator{viper: viper.GetViper(), flags: flags}).configure()
+		if err != nil {
+			exitWithError(err)
+		}
+
+		migrator, err = dbmigrate.NewMigrator(&dbmigrate.Settings{
+			Engine:            v.GetString("engine"),
+			Database:          v.GetString("database"),
+			User:              v.GetString("user"),
+			Host:              v.GetString("host"),
+			Port:              v.GetInt("port"),
+			MigrationsTable:   v.GetString("table"),
+			AllowMissingDowns: v.GetBool("missingdowns"),
+			MigrationsCh:      make(chan *dbmigrate.Migration),
+			ErrorsCh:          make(chan error),
+		})
+		if err != nil {
+			exitWithError(err)
+		}
+	})
 }
 
 func main() {
-	errStartStr := "can't start dbmigrate"
-	v, err := (&viperConfigurator{viper: viper.GetViper(), flags: flags}).configure()
-	if err != nil {
-		exitWithError(errors.Wrap(err, errStartStr))
-	}
+	defer migrator.Close()
 
-	migrator, err = dbmigrate.NewMigrator(&dbmigrate.Settings{
-		Engine:            v.GetString("engine"),
-		Database:          v.GetString("database"),
-		User:              v.GetString("user"),
-		Host:              v.GetString("host"),
-		Port:              v.GetInt("port"),
-		MigrationsTable:   v.GetString("table"),
-		AllowMissingDowns: v.GetBool("missingdowns"),
-		MigrationsCh:      make(chan *dbmigrate.Migration),
-		ErrorsCh:          make(chan error),
-	})
-	if err != nil {
-		exitWithError(errors.Wrapf(err, errStartStr))
-	}
-
-	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd, redoCmd)
-	err = migrateCmd.Execute()
+	err := migrateCmd.Execute()
 	if err != nil {
 		exitWithError(err)
 	}
-
-	migrator.Close()
 }

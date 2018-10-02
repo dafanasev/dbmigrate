@@ -40,8 +40,7 @@ var redoCmd = &cobra.Command{
 		}()
 
 		var n int
-		var err error
-		n, err = migrator.Rollback()
+		n, err := migrator.Rollback()
 		if err != nil {
 			close(done)
 			return errors.Wrap(err, "can't redo: can't rollback")
