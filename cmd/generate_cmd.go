@@ -24,38 +24,42 @@ var generateCmd = &cobra.Command{
 	Short: "generate migration",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(migrationsGeneratorEngines) > 0 && migrationsGeneratorEngines[0] != "all" && migrationsGeneratorEngines[0] != enginesNoOptDefVal {
-			for _, engine := range migrationsGeneratorEngines {
-				if !dbmigrate.EngineExists(engine) {
-					return errors.Errorf("can't generate migration, engines %s is not exists/supported", engine)
-				}
-			}
-		}
-
-		if len(migrationsGeneratorEngines) == 0 {
-			// generate migration for all engines
-			migrationsGeneratorEngines = []string{""}
-		}
-
-		if len(migrationsGeneratorEngines) == 1 && migrationsGeneratorEngines[0] == enginesNoOptDefVal {
-			migrationsGeneratorEngines[0] = migrator.Engine
-		}
-
-		if len(migrationsGeneratorEngines) == 1 && migrationsGeneratorEngines[0] == "all" {
-			migrationsGeneratorEngines = dbmigrate.Engines()
-		}
-
-		for _, engine := range migrationsGeneratorEngines {
-			fpaths, err := migrator.GenerateMigration(strings.Join(args, " "), engine)
-			if err != nil {
-				return errors.Wrap(err, "can't generate migration")
-			}
-
-			for _, fpath := range fpaths {
-				fmt.Printf("created %s\n", fpath)
-			}
-		}
-
-		return nil
+		return generateMigration(migrator, migrationsGeneratorEngines, args...)
 	},
+}
+
+func generateMigration(migrator *dbmigrate.Migrator, engines []string, args ...string) error {
+	if len(engines) > 0 && engines[0] != "all" && engines[0] != enginesNoOptDefVal {
+		for _, engine := range engines {
+			if !dbmigrate.EngineExists(engine) {
+				return errors.Errorf("can't generate migration, engines %s is not exists/supported", engine)
+			}
+		}
+	}
+
+	if len(engines) == 0 {
+		// generate migration for all engines
+		engines = []string{""}
+	}
+
+	if len(engines) == 1 && engines[0] == enginesNoOptDefVal {
+		engines[0] = migrator.Engine
+	}
+
+	if len(engines) == 1 && engines[0] == "all" {
+		engines = dbmigrate.Engines()
+	}
+
+	for _, engine := range engines {
+		fpaths, err := migrator.GenerateMigration(strings.Join(args, " "), engine)
+		if err != nil {
+			return errors.Wrap(err, "can't generate migration")
+		}
+
+		for _, fpath := range fpaths {
+			fmt.Printf("created %s\n", fpath)
+		}
+	}
+
+	return nil
 }
