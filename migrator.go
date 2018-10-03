@@ -16,7 +16,7 @@ import (
 
 var ErrEmptyQuery = errors.New("empty query")
 
-const allSteps = 0
+const AllSteps = 0
 
 type Migrator struct {
 	*Settings
@@ -132,7 +132,7 @@ func (m *Migrator) Close() error {
 }
 
 func (m *Migrator) Migrate() (int, error) {
-	return m.MigrateSteps(allSteps)
+	return m.MigrateSteps(AllSteps)
 }
 
 func (m *Migrator) MigrateSteps(steps int) (int, error) {
@@ -141,7 +141,7 @@ func (m *Migrator) MigrateSteps(steps int) (int, error) {
 		return 0, errors.Wrap(err, "can't find migrations")
 	}
 
-	if steps == allSteps || steps > len(migrations) {
+	if steps == AllSteps || steps > len(migrations) {
 		steps = len(migrations)
 	}
 

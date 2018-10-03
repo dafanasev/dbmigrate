@@ -25,7 +25,7 @@ func createTempStuff() {
 
 	os.MkdirAll(filepath.Join(MigrationsDir, "subfolder"), os.ModeDir|os.ModePerm)
 
-	fileData := map[string]string{
+	filesData := map[string]string{
 		"8234234.incorrect_name.noql.sql":                        "",
 		"20180918200453.correct.up.sql":                          "CREATE TABLE posts (title VARCHAR NOT NULL, content TEXT NOT NULL, PRIMARY KEY(title));",
 		"20180918200453.correct.down.sql":                        "DROP TABLE posts;",
@@ -36,7 +36,7 @@ func createTempStuff() {
 		"20180918201019.specific_engine_correct.up.sqlite.sql":   "CREATE TABLE comments (author VARCHAR NOT NULL, content TEXT NOT NULL, PRIMARY KEY(author))\n; CREATE TABLE tags (title VARCHAR NOT NULL, PRIMARY KEY(title));",
 		"20180918201019.specific_engine_correct.down.sqlite.sql": "DROP TABLE comments;\n DROP TABLE tags;",
 	}
-	for fname, content := range fileData {
+	for fname, content := range filesData {
 		ioutil.WriteFile(filepath.Join(MigrationsDir, fname), []byte(content), 0644)
 	}
 }

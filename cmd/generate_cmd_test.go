@@ -10,8 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_commands(t *testing.T) {
+func Test_generateMigration(t *testing.T) {
 	os.Mkdir(dbmigrate.MigrationsDir, os.ModePerm)
+	defer os.RemoveAll(dbmigrate.MigrationsDir)
 
 	migrator, _ := dbmigrate.NewMigrator(&dbmigrate.Settings{Engine: "sqlite", Database: "test.db"})
 	defer migrator.Close()
