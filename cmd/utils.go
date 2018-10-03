@@ -11,6 +11,7 @@ import (
 func exitWithError(err error) {
 	if migrator != nil {
 		migrator.Close()
+		migrator = nil
 	}
 
 	fmt.Fprintln(os.Stderr, errors.Wrap(err, "can't run dbmigrate"))

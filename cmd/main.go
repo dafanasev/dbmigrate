@@ -79,10 +79,10 @@ func init() {
 }
 
 func main() {
-	defer migrator.Close()
-
 	err := migrateCmd.Execute()
 	if err != nil {
 		exitWithError(err)
 	}
+
+	migrator.Close()
 }
