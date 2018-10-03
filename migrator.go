@@ -157,17 +157,20 @@ func (m *Migrator) MigrateSteps(steps int) (int, error) {
 }
 
 func (m *Migrator) Rollback() (int, error) {
-	steps, err := m.dbWrapper.countMigrationsInLastBatch()
-	if err != nil {
-		return 0, err
-	}
-	return m.RollbackSteps(steps)
+	return m.RollbackSteps(0)
 }
 
 func (m *Migrator) RollbackSteps(steps int) (int, error) {
 	appliedMigrationsData, err := m.dbWrapper.appliedMigrationsData("applied_at DESC, version DESC")
 	if err != nil {
 		return 0, errors.Wrap(err, "can't rollback")
+	}
+
+	if steps == 0 {
+		steps, err = m.dbWrapper.countMigrationsInLastBatch()
+		if err != nil {
+			return 0, errors.Wrap(err, "can't ge migrations in last batch")
+		}
 	}
 
 	if steps > len(appliedMigrationsData) {

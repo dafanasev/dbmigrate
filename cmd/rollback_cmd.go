@@ -40,13 +40,7 @@ func rollback(migrator *dbmigrate.Migrator, steps int) (int, error) {
 		}
 	}()
 
-	var n int
-	var err error
-	if steps == 0 {
-		n, err = migrator.Rollback()
-	} else {
-		n, err = migrator.RollbackSteps(steps)
-	}
+	n, err := migrator.RollbackSteps(steps)
 	close(done)
 
 	<-gdone
