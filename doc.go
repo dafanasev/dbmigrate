@@ -20,9 +20,10 @@ package dbmigrate
 
 
 	TODO:
-	* tests for CLI
+	* tests for CLI +
 	* Dockerfile +
- 	* CLI help
+ 	* CLI help +
 	* comments
 	* Readme/docs
+	* CI
 */

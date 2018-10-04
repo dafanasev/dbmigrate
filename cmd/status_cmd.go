@@ -13,7 +13,9 @@ import (
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "database schema status",
+	Short: "Migrations status",
+	Long: `Shows migrations list with names, versions and applied at time, if it is set.
+Also shows latest version migration and last applied migrations (they are not necessarily the same ones).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return status(migrator)
 	},

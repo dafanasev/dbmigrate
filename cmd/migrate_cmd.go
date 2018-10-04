@@ -14,7 +14,10 @@ func init() {
 
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "migrate database schema",
+	Short: "Apply migrations",
+	Long: `Migrate database schema.
+By default, all unapplied migrations will be applied.
+If --steps (-s) flag is provided, only -s migrations will.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		_, err := migrate(migrator, steps)
 		return err

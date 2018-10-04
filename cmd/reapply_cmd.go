@@ -10,19 +10,22 @@ import (
 )
 
 func init() {
-	redoCmd.Flags().IntVarP(&steps, "steps", "s", 0, "steps")
+	reapplyCmd.Flags().IntVarP(&steps, "steps", "s", 0, "steps")
 }
 
-var redoCmd = &cobra.Command{
-	Use:   "redo",
-	Short: "redo last batch",
+var reapplyCmd = &cobra.Command{
+	Use:   "reapply",
+	Short: "Reapply migrations",
+	Long: `Rollback migrations.
+The latest migration operation will be reapplied, e.g. if 3 migrations have been applied, 3 migrations will be rolled back and reapplied.
+If --steps (-s) flag is provided, -s migrations will be reapplied.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, err := redo(migrator, steps)
+		_, err := reapply(migrator, steps)
 		return err
 	},
 }
 
-func redo(migrator *dbmigrate.Migrator, steps int) (int, error) {
+func reapply(migrator *dbmigrate.Migrator, steps int) (int, error) {
 	done := make(chan struct{})
 	gdone := make(chan struct{})
 
@@ -48,7 +51,7 @@ func redo(migrator *dbmigrate.Migrator, steps int) (int, error) {
 	n, err := migrator.RollbackSteps(steps)
 	if err != nil {
 		close(done)
-		return n, errors.Wrap(err, "can't redo: can't rollback")
+		return n, errors.Wrap(err, "can't reapply: can't rollback")
 	}
 	if n == 0 {
 		close(done)
@@ -62,7 +65,7 @@ func redo(migrator *dbmigrate.Migrator, steps int) (int, error) {
 
 	<-gdone
 	if err != nil {
-		return n, errors.Wrap(err, "can't redo: can't migrate")
+		return n, errors.Wrap(err, "can't reapply: can't migrate")
 	}
 	fmt.Printf("%d %s successfully reapplied\n", n, pluralize("migration", n))
 

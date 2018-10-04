@@ -15,7 +15,10 @@ func init() {
 
 var rollbackCmd = &cobra.Command{
 	Use:   "rollback",
-	Short: "rollback database schema",
+	Short: "Rollback migrations",
+	Long: `Rollback migrations.
+The latest migration operation will be rolled back, e.g. if 3 migrations have been applied, 3 migrations will be rolled back.
+If --steps (-s) flag is provided, -s migrations will be rolled back.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		_, err := rollback(migrator, steps)
 		return err

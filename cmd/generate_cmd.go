@@ -21,8 +21,10 @@ func init() {
 
 var generateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "generate migration",
-	Args:  cobra.MinimumNArgs(1),
+	Short: "Generate migration",
+	Long: `Generate up and down migrations, use args to build migration name,
+e.g. dbmigrate generate Create posts table will become create_posts_table in the generated migration name`,
+	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return generateMigration(migrator, migrationsGeneratorEngines, args...)
 	},

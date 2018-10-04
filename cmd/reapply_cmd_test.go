@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_redo(t *testing.T) {
+func Test_reapply(t *testing.T) {
 	createTestMigrations()
 	defer os.RemoveAll(dbmigrate.MigrationsDir)
 	defer os.Remove("test.db")
@@ -21,29 +21,29 @@ func Test_redo(t *testing.T) {
 	})
 	defer migrator.Close()
 
-	n, err := redo(migrator, 0)
+	n, err := reapply(migrator, 0)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 
 	migrate(migrator, dbmigrate.AllSteps)
-	n, err = redo(migrator, 0)
+	n, err = reapply(migrator, 0)
 	require.NoError(t, err)
 	assert.Equal(t, 3, n)
 
 	migrate(migrator, dbmigrate.AllSteps)
-	n, err = redo(migrator, 2)
+	n, err = reapply(migrator, 2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 
 	os.Rename(filepath.Join(dbmigrate.MigrationsDir, "20180918200453.first.down.sql"), "./20180918200453.first.down.sql")
-	n, err = redo(migrator, 0)
+	n, err = reapply(migrator, 0)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "can't rollback")
 	assert.Equal(t, 0, n)
 
 	migrate(migrator, dbmigrate.AllSteps)
 	migrator.AllowMissingDowns = true
-	n, err = redo(migrator, 0)
+	n, err = reapply(migrator, 0)
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	os.Rename("./20180918200453.first.down.sql", filepath.Join(dbmigrate.MigrationsDir, "20180918200453.first.down.sql"))
