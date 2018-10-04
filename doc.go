@@ -25,5 +25,6 @@ package dbmigrate
  	* CLI help +
 	* comments
 	* Readme/docs
-	* CI
+	* CI +
+	* Release
 */

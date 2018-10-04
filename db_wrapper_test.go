@@ -131,7 +131,6 @@ func Test_dbWrapper(t *testing.T) {
 }
 
 func Test_dbWrapper_execMigrationQueries(t *testing.T) {
-
 	for engine, provider := range providers {
 		s := &Settings{Engine: engine, Database: "migrate_test", User: "dbmigrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
 		if engine == "postgres" {

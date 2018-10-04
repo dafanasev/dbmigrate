@@ -1,0 +1,25 @@
+sudo: required
+
+language: go
+
+services:
+  - docker
+
+go:
+  - "1.x"
+  - "1.10.x"
+  - "1.11.x"
+  - master
+before_install:
+  - go get github.com/mattn/goveralls
+
+before_script:
+  - docker-compose up --build -d
+  - while [ "$(docker inspect -f '{{.State.Health.Status}}' dbmigrate_postgres_1)" != "healthy" ]; do sleep 1; done
+  - while [ "$(docker inspect -f '{{.State.Health.Status}}' dbmigrate_mysql_1)" != "healthy" ]; do sleep 1; done
+
+script:
+  - $GOPATH/bin/goveralls -service=travis-ci
+
+after_script:
+  - docker-compose down
