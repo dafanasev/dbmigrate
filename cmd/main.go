@@ -38,13 +38,13 @@ func init() {
 	flags = &appFlags{}
 
 	migrateCmd.PersistentFlags().StringVarP(&flags.appName, "appname", "a", "", "app name (used as prefix for env vars)")
-	migrateCmd.PersistentFlags().StringVarP(&flags.env, "env", "n", "", "optional environment (to support more than one database)")
+	migrateCmd.PersistentFlags().StringVarP(&flags.env, "env", "e", "", "optional environment (to support more than one database)")
 
 	migrateCmd.PersistentFlags().StringVarP(&flags.configFile, "config", "c", "dbmigrate", "config file (default is dbmigrate.yml)")
 	migrateCmd.PersistentFlags().StringVarP(&flags.kvsParamsStr, "kvsparams", "k", "", "key value connection string, (provider://host:port/path.format")
 	migrateCmd.PersistentFlags().StringVarP(&flags.secretKeyRingPath, "secretkeyring", "r", "", "secret key ring path")
 
-	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.engine, "engine", "e", "", "database engine")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.engine, "engine", "n", "", "database engine")
 	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.database, "database", "d", "", "database name")
 	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.user, "user", "u", "", "database user")
 	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.password, "password", "p", "", "database password")
