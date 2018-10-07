@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DirExists checks if directory at path is exist
+// DirExists checks if directory at path exists
 func DirExists(dirpath string) bool {
 	stats, err := os.Stat(dirpath)
 	if os.IsNotExist(err) || !stats.IsDir() {
@@ -17,6 +17,7 @@ func DirExists(dirpath string) bool {
 	return true
 }
 
+// FileExists checks if file at path exists
 func FileExists(fpath string) bool {
 	stats, err := os.Stat(fpath)
 	if os.IsNotExist(err) || stats.IsDir() {
@@ -26,7 +27,7 @@ func FileExists(fpath string) bool {
 }
 
 // DirectionFromString tries to build Direction from string,
-// checking for valid ones
+// checking for valid ones and returning an error if check was unsuccessful
 func DirectionFromString(s string) (Direction, error) {
 	switch strings.ToLower(s) {
 	case "up":
@@ -46,11 +47,13 @@ func isRootDir(dir string) bool {
 	return false
 }
 
+// EngineExists checks is specified database provider exists
 func EngineExists(engine string) bool {
 	_, ok := providers[engine]
 	return ok
 }
 
+// Engines returns list of supported database engines
 func Engines() []string {
 	var engines []string
 	for engine := range providers {

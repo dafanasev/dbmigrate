@@ -9,9 +9,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Migration holds info about Migration
+// Migration holds metadata of migration
 type Migration struct {
-	// Version when the migration was created
+	// Version holds the created at timestamp
 	Version   time.Time
 	Name      string
 	AppliedAt time.Time
@@ -25,6 +25,7 @@ func (bts byTimestamp) Len() int           { return len(bts) }
 func (bts byTimestamp) Swap(i, j int)      { bts[i], bts[j] = bts[j], bts[i] }
 func (bts byTimestamp) Less(i, j int) bool { return bts[i].Version.Unix() < bts[j].Version.Unix() }
 
+// FileName builds migration file name from metadata
 func (m *Migration) FileName() string {
 	parts := []string{m.Version.Format(TimestampFormat), m.Name, m.Direction.String()}
 	if m.Engine != "" {
@@ -35,6 +36,7 @@ func (m *Migration) FileName() string {
 	return strings.Join(parts, ".")
 }
 
+// HumanName returns migration's name without underscores
 func (m *Migration) HumanName() string {
 	return strings.Replace(m.Name, "_", " ", -1)
 }

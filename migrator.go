@@ -14,10 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ErrEmptyQuery = errors.New("empty query")
-
+// AllSteps specifies that all migrations should be applied
 const AllSteps = 0
 
+// Migrator is the end user interface for all library operations
 type Migrator struct {
 	*Settings
 	// dbWrapper wraps db ops
@@ -25,7 +25,7 @@ type Migrator struct {
 	projectDir string
 }
 
-// NewMigrator returns migrator instance
+// NewMigrator returns Migrator instance
 func NewMigrator(settings *Settings) (*Migrator, error) {
 	if settings.Engine == "" {
 		return nil, errors.New("database engine not specified")
@@ -75,6 +75,7 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 	return m, nil
 }
 
+// GenerateMigration generates up and down migrations with given name for given engine
 func (m *Migrator) GenerateMigration(descr string, engine string) ([]string, error) {
 	if engine != "" {
 		if _, ok := providers[engine]; !ok {
@@ -131,10 +132,12 @@ func (m *Migrator) Close() error {
 	return nil
 }
 
+// Migrate applies all unapplied migrations
 func (m *Migrator) Migrate() (int, error) {
 	return m.MigrateSteps(AllSteps)
 }
 
+// MigrateSteps applies the number of migrations specified by the steps variable
 func (m *Migrator) MigrateSteps(steps int) (int, error) {
 	migrations, err := m.unappliedMigrations()
 	if err != nil {
@@ -156,10 +159,12 @@ func (m *Migrator) MigrateSteps(steps int) (int, error) {
 	return len(migrations[:steps]), nil
 }
 
+// Rollback rolls back last migration operation
 func (m *Migrator) Rollback() (int, error) {
 	return m.RollbackSteps(0)
 }
 
+// RollbackSteps rolla back the number of migrations specified by the steps variable
 func (m *Migrator) RollbackSteps(steps int) (int, error) {
 	appliedMigrationsData, err := m.dbWrapper.appliedMigrationsData("applied_at DESC, version DESC")
 	if err != nil {
@@ -212,10 +217,10 @@ func (m *Migrator) run(migration *Migration) error {
 
 	if strings.TrimSpace(string(query)) == "" {
 		if migration.Direction == DirectionUp || (migration.Direction == DirectionDown && !m.AllowMissingDowns) {
-			return ErrEmptyQuery
+			return errors.New("empty query")
 		}
 		if m.ErrorsCh != nil {
-			m.ErrorsCh <- ErrEmptyQuery
+			m.ErrorsCh <- errors.New("empty query")
 		}
 		return nil
 	}
@@ -249,6 +254,7 @@ func (m *Migrator) run(migration *Migration) error {
 	return nil
 }
 
+// LatestVersionMigration returns the migration that has the most recent version (which is not necessarily the last applied one)
 func (m *Migrator) LatestVersionMigration() (*Migration, error) {
 	ts, err := m.dbWrapper.latestMigrationVersion()
 	if err != nil {
@@ -267,6 +273,7 @@ func (m *Migrator) LatestVersionMigration() (*Migration, error) {
 	return migration, nil
 }
 
+// LastAppliedMigration returns the migration which was applied last
 func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 	ts, err := m.dbWrapper.lastAppliedMigrationVersion()
 	if err != nil {
@@ -285,6 +292,8 @@ func (m *Migrator) LastAppliedMigration() (*Migration, error) {
 	return migration, nil
 }
 
+// Status returns applied a timestamp for each migration or nil if it is not set
+// along with the migration's name and version
 func (m *Migrator) Status() ([]*Migration, error) {
 	foundMigrations, err := m.findMigrations(DirectionUp)
 	if err != nil {
@@ -308,7 +317,7 @@ func (m *Migrator) Status() ([]*Migration, error) {
 	return foundMigrations, nil
 }
 
-// findMigrations finds all valid migrations in the migrations dir
+// findMigrations finds all valid migrations in the dbmigrations dir
 func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	var migrations []*Migration
 	migrationsDirPath := filepath.Join(m.projectDir, MigrationsDir)

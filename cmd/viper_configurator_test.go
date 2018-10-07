@@ -13,13 +13,13 @@ import (
 	crypt "github.com/xordataexchange/crypt/config"
 )
 
-var dbmigrateConfigJson = []byte(`{"engine": "sqlite", "database": "test.db"}`)
-var envScopedDbmigrateConfigJson = []byte(`{"test": {"engine": "sqlite", "database": "test.db"}}`)
+var dbmigrateConfigJSON = []byte(`{"engine": "sqlite", "database": "test.db"}`)
+var envScopedDbmigrateConfigJSON = []byte(`{"test": {"engine": "sqlite", "database": "test.db"}}`)
 
 func createConfigFiles() {
 	os.Mkdir(dbmigrate.MigrationsDir, os.ModePerm)
-	ioutil.WriteFile("dbmigrate.json", dbmigrateConfigJson, os.ModePerm)
-	ioutil.WriteFile("dbmigrate.test.json", envScopedDbmigrateConfigJson, os.ModePerm)
+	ioutil.WriteFile("dbmigrate.json", dbmigrateConfigJSON, os.ModePerm)
+	ioutil.WriteFile("dbmigrate.test.json", envScopedDbmigrateConfigJSON, os.ModePerm)
 }
 
 func removeConfigFiles() {
@@ -75,7 +75,7 @@ func Test_viperConfigurator_readKVS(t *testing.T) {
 		cm, err := managerFn([]string{fmt.Sprintf("%s127.0.0.1:%d", scheme, port)})
 		require.NoError(t, err)
 
-		err = cm.Set("/configs/theservice", dbmigrateConfigJson)
+		err = cm.Set("/configs/theservice", dbmigrateConfigJSON)
 		require.NoError(t, err)
 
 		vc := &viperConfigurator{viper: viper.New(), flags: &appFlags{kvsParamsStr: kvs + "://localhost/configs/theservice.json"}}

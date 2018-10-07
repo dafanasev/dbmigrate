@@ -6,13 +6,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+// MigrationsDir is the directory to store migrations
 const MigrationsDir = "dbmigrations"
 
 const (
-	TimestampFormat      = "20060102150405"
+	// TimestampFormat defines format for migration versioning
+	// and is used in migrations file names and db table
+	TimestampFormat = "20060102150405"
+	// PrintTimestampFormat defines format for printing timestamps
 	PrintTimestampFormat = "2006.01.02 15:04:05"
 )
 
+// Settings used by Migrator
 type Settings struct {
 	Engine            string
 	Database          string
@@ -22,20 +27,24 @@ type Settings struct {
 	Port              int
 	MigrationsTable   string
 	AllowMissingDowns bool
-	// migrationsCh is the channel for applied migrations
+	// MigrationsCh is the channel for applied migrations
 	MigrationsCh chan *Migration
-	// errorsChan is the channel for errors
+	// ErrorsChan is the channel for errors that happened during the work but are not fatal
 	ErrorsCh chan error
 }
 
+// Direction specifies if migration is used to migrate or rollback schema
 type Direction int
 
 const (
 	directionError = Direction(iota)
+	// DirectionUp is the direction to migrate schema
 	DirectionUp
+	// DirectionDown is the direction to rollback schema
 	DirectionDown
 )
 
+// String returns string representation of direction
 func (d Direction) String() string {
 	if d == DirectionUp {
 		return "up"
@@ -43,7 +52,7 @@ func (d Direction) String() string {
 	return "down"
 }
 
-// FindProjectDir recursively find project dir (the one that has migrations subdir)
+// FindProjectDir recursively finds project dir (the one that has dbmigrations subdir)
 func FindProjectDir(fromDir string) (string, error) {
 	if DirExists(filepath.Join(fromDir, MigrationsDir)) {
 		return fromDir, nil

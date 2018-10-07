@@ -202,7 +202,7 @@ func Test_Migrator_run(t *testing.T) {
 
 	migration, _ = migrationFromFileName("20180918200742.wrong_engine.up.postgres.sql")
 	err = m.run(migration)
-	assert.EqualError(t, err, ErrEmptyQuery.Error())
+	assert.EqualError(t, err, "empty query")
 
 	go func() {
 		migration := <-migrationsCh
@@ -216,11 +216,11 @@ func Test_Migrator_run(t *testing.T) {
 
 	migration, _ = migrationFromFileName("20180918200742.wrong_engine.down.postgres.sql")
 	err = m.run(migration)
-	assert.EqualError(t, err, ErrEmptyQuery.Error())
+	assert.EqualError(t, err, "empty query")
 
 	go func() {
 		err := <-errorsCh
-		assert.EqualError(t, err, ErrEmptyQuery.Error())
+		assert.EqualError(t, err, "empty query")
 		done <- struct{}{}
 	}()
 
