@@ -48,12 +48,6 @@ func isRootDir(dir string) bool {
 	return false
 }
 
-// EngineExists checks is specified database provider exists
-func EngineExists(engine string) bool {
-	_, ok := providers[engine]
-	return ok
-}
-
 // Engines returns list of supported database engines
 func Engines() []string {
 	var engines []string

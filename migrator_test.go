@@ -381,7 +381,13 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 		{" test\tSpecific migration \n ", "sqlite"},
 	}
 	for _, data := range testData {
-		fpaths, err := m.GenerateMigration(data.descr, data.engine)
+		var fpaths []string
+		var err error
+		if data.engine == "" {
+			fpaths, err = m.GenerateMigration(data.descr)
+		} else {
+			fpaths, err = m.GenerateMigration(data.descr, data.engine)
+		}
 		assert.NoError(t, err)
 		for _, fpath := range fpaths {
 			if data.engine == "" {
@@ -395,7 +401,11 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 			assert.True(t, FileExists(fpath))
 		}
 
-		_, err = m.GenerateMigration(data.descr, data.engine)
+		if data.engine == "" {
+			_, err = m.GenerateMigration(data.descr)
+		} else {
+			_, err = m.GenerateMigration(data.descr, data.engine)
+		}
 		assert.Contains(t, err.Error(), "already exists")
 
 		for _, fpath := range fpaths {
@@ -405,7 +415,7 @@ func Test_Migrator_GenerateMigration(t *testing.T) {
 }
 
 func Test_Migrator_Status(t *testing.T) {
-	os.Remove("tets.db")
+	os.Remove("test.db")
 
 	m, _ := NewMigrator(&Settings{Engine: "sqlite", Database: "test.db"})
 	defer m.Close()

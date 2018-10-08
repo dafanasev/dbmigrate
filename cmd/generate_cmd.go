@@ -35,19 +35,6 @@ e.g. dbmigrate generate Create posts table will become create_posts_table in the
 
 // generateMigration the the actual migration generation function
 func generateMigration(migrator *dbmigrate.Migrator, engines []string, args ...string) error {
-	if len(engines) > 0 && engines[0] != "all" && engines[0] != enginesNoOptDefVal {
-		for _, engine := range engines {
-			if !dbmigrate.EngineExists(engine) {
-				return errors.Errorf("can't generate migration, engines %s is not exists/supported", engine)
-			}
-		}
-	}
-
-	if len(engines) == 0 {
-		// generate migration for all engines
-		engines = []string{""}
-	}
-
 	if len(engines) == 1 && engines[0] == enginesNoOptDefVal {
 		engines[0] = migrator.Engine
 	}
@@ -56,15 +43,13 @@ func generateMigration(migrator *dbmigrate.Migrator, engines []string, args ...s
 		engines = dbmigrate.Engines()
 	}
 
-	for _, engine := range engines {
-		fpaths, err := migrator.GenerateMigration(strings.Join(args, " "), engine)
-		if err != nil {
-			return errors.Wrap(err, "can't generate migration")
-		}
+	fpaths, err := migrator.GenerateMigration(strings.Join(args, " "), engines...)
+	if err != nil {
+		return errors.Wrap(err, "can't generate migration")
+	}
 
-		for _, fpath := range fpaths {
-			fmt.Printf("created %s\n", fpath)
-		}
+	for _, fpath := range fpaths {
+		fmt.Printf("created %s\n", fpath)
 	}
 
 	return nil

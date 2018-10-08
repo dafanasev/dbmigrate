@@ -59,16 +59,6 @@ func Test_isRootDir(t *testing.T) {
 	assert.True(t, isRootDir(filepath.Join("C:")))
 }
 
-func Test_EngineExists(t *testing.T) {
-	for _, p := range []string{"sqlite", "postgres", "mysql"} {
-		assert.True(t, EngineExists(p))
-	}
-
-	for _, p := range []string{"", " ", "\n", "nodb"} {
-		assert.False(t, EngineExists(p))
-	}
-}
-
 func Test_Engines(t *testing.T) {
 	exp := []string{"sqlite", "postgres", "mysql"}
 	sort.Strings(exp)

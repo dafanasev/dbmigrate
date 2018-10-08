@@ -26,6 +26,7 @@ func Test_generateMigration(t *testing.T) {
 		os.RemoveAll(dbmigrate.MigrationsDir)
 	}
 
+	testFn(migrator, "*first_migration.*.sql", 2, nil, "first", "migration")
 	testFn(migrator, "*first_migration.*.sql", 2, []string{}, "first", "migration")
 	testFn(migrator, "*current_engine_migration.*.sqlite.sql", 2, []string{enginesNoOptDefVal}, "current", "engine", "migration")
 	testFn(migrator, "*all_engines_migration.*.*.sql", 6, []string{"all"}, "all", "engines", "migration")

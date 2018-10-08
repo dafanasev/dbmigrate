@@ -78,39 +78,47 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 }
 
 // GenerateMigration generates up and down migrations with given name for given engine
-func (m *Migrator) GenerateMigration(descr string, engine string) ([]string, error) {
-	if engine != "" {
-		if _, ok := providers[engine]; !ok {
-			return nil, errors.Errorf("database engine %s is not exists/supported", engine)
+func (m *Migrator) GenerateMigration(descr string, engines ...string) ([]string, error) {
+	if engines != nil {
+		for _, engine := range engines {
+			if _, ok := providers[engine]; !ok {
+				return nil, errors.Errorf("database engine %s is not exists/supported", engine)
+			}
 		}
+	}
+
+	if engines == nil || len(engines) == 0 {
+		engines = []string{""}
 	}
 
 	var fpaths []string
+	for _, engine := range engines {
+		ts := time.Now().UTC()
+		re := regexp.MustCompile(`\s+`)
 
-	ts := time.Now().UTC()
-	re := regexp.MustCompile(`\s+`)
+		for _, direction := range []string{"up", "down"} {
+			parts := []string{ts.Format(TimestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_"), direction}
+			if engine != "" {
+				parts = append(parts, engine)
+			}
+			parts = append(parts, "sql")
 
-	for _, direction := range []string{"up", "down"} {
-		parts := []string{ts.Format(TimestampFormat), re.ReplaceAllString(strings.TrimSpace(strings.ToLower(descr)), "_"), direction}
-		if engine != "" {
-			parts = append(parts, engine)
+			fname := strings.Join(parts, ".")
+			fpath := filepath.Join(MigrationsDir, fname)
+
+			if FileExists(fpath) {
+				return nil, errors.Errorf("migration file %s already exists", fname)
+			}
+
+			_, err := os.Create(fpath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "can't create migration file %s", fname)
+			}
+
+			fpaths = append(fpaths, fpath)
 		}
-		parts = append(parts, "sql")
-
-		fname := strings.Join(parts, ".")
-		fpath := filepath.Join(MigrationsDir, fname)
-
-		if FileExists(fpath) {
-			return nil, errors.Errorf("migration file %s already exists", fname)
-		}
-
-		_, err := os.Create(fpath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "can't create migration file %s", fname)
-		}
-
-		fpaths = append(fpaths, fpath)
 	}
+
 	return fpaths, nil
 }
 
