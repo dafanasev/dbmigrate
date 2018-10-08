@@ -12,6 +12,7 @@ func init() {
 	providers["postgres"] = &postgresProvider{}
 }
 
+// postgresProvider is the provider and placeholdersProvider interfaces implementation for postgres
 type postgresProvider struct {
 	defaultProvider
 }
@@ -51,6 +52,7 @@ func (p *postgresProvider) dsn(settings *Settings) (string, error) {
 }
 
 func (p *postgresProvider) setPlaceholders(s string) string {
+	// for postgres, variable placeholders not question marks but $1, $2, $2, etc
 	counter := 0
 	for strings.Contains(s, "?") {
 		counter++

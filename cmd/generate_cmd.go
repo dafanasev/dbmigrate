@@ -9,16 +9,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// enginesNoOptDefVal is the constant used to specify that migration should be created for the current (used in migrator) database engine only
 const enginesNoOptDefVal = "currentEngine"
 
+// migrationsGeneratorEngines used by flag which specifies database engines to create migrations for
 var migrationsGeneratorEngines []string
 
 func init() {
 	generateCmd.Flags().StringSliceVarP(&migrationsGeneratorEngines, "engines", "g", nil, "specific engines")
-	// if flag is set without an option use this placeholder to later set specific engine to the one from migrator settings
+	// if flag is set without a value use this placeholder to later set specific engine to the one from migrator settings
 	generateCmd.Flags().Lookup("engines").NoOptDefVal = enginesNoOptDefVal
 }
 
+// generateCmd is the Cobra command to generate migrations
 var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate migration",
@@ -30,6 +33,7 @@ e.g. dbmigrate generate Create posts table will become create_posts_table in the
 	},
 }
 
+// generateMigration the the actual migration generation function
 func generateMigration(migrator *dbmigrate.Migrator, engines []string, args ...string) error {
 	if len(engines) > 0 && engines[0] != "all" && engines[0] != enginesNoOptDefVal {
 		for _, engine := range engines {

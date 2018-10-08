@@ -9,17 +9,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_byTimestamp(t *testing.T) {
-	ts1 := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
-	ts2 := ts1.Add(time.Second)
-	migrations := []*Migration{{Version: ts2}, {Version: ts1}}
-	sort.Sort(byTimestamp(migrations))
-	assert.Equal(t, []*Migration{{Version: ts1}, {Version: ts2}}, migrations)
+func Test_byVersion(t *testing.T) {
+	v1 := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
+	v2 := v1.Add(time.Second)
+	migrations := []*Migration{{Version: v2}, {Version: v1}}
+	sort.Sort(byVersion(migrations))
+	assert.Equal(t, []*Migration{{Version: v1}, {Version: v2}}, migrations)
 }
 
 func Test_Migration_FileName(t *testing.T) {
-	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
-	m := &Migration{Version: ts, Name: "test_migration", Direction: DirectionUp}
+	v := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
+	m := &Migration{Version: v, Name: "test_migration", Direction: DirectionUp}
 	assert.Equal(t, "20100607080910.test_migration.up.sql", m.FileName())
 
 	m.Engine = "postgres"
@@ -27,8 +27,8 @@ func Test_Migration_FileName(t *testing.T) {
 }
 
 func Test_Migration_HumanName(t *testing.T) {
-	ts := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
-	m := &Migration{Version: ts, Name: "test_migration"}
+	v := time.Date(2010, 6, 7, 8, 9, 10, 11, time.UTC)
+	m := &Migration{Version: v, Name: "test_migration"}
 	assert.Equal(t, "test migration", m.HumanName())
 }
 
@@ -56,8 +56,8 @@ func Test_migrationFromFileName(t *testing.T) {
 	for _, fname := range correctNames {
 		m, err := migrationFromFileName(fname)
 		assert.NoError(t, err)
-		ts := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
-		assert.Equal(t, ts, m.Version)
+		v := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
+		assert.Equal(t, v, m.Version)
 		parts := strings.Split(fname, ".")
 		assert.Equal(t, parts[1], m.Name)
 		assert.Equal(t, DirectionUp, m.Direction)

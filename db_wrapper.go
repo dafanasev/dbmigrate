@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	errDBNameNotProvided = errors.New("database name name is not provided")
+	errDBNameNotProvided = errors.New("database name is not provided")
 	errUserNotProvided   = errors.New("user is not provided")
 )
 
+// dbWrapper encapsulates all database access operations
 type dbWrapper struct {
 	*Settings
 	db *sql.DB
@@ -21,15 +22,18 @@ type dbWrapper struct {
 	placeholdersProvider
 }
 
+// executor is an interface to exec sql so we could pass db instance as well as tx one
 type executor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
+// migrationData holds info about migration from migrations table
 type migrationData struct {
 	version   time.Time
 	appliedAt time.Time
 }
 
+// newDBWrapper creates new dbWrapper instance
 func newDBWrapper(settings *Settings, provider provider) *dbWrapper {
 	w := &dbWrapper{
 		Settings: settings,
@@ -42,6 +46,7 @@ func newDBWrapper(settings *Settings, provider provider) *dbWrapper {
 	return w
 }
 
+// open creates new database connection
 func (w *dbWrapper) open() error {
 	dsn, err := w.provider.dsn(w.Settings)
 	if err != nil {
@@ -56,6 +61,7 @@ func (w *dbWrapper) open() error {
 	return nil
 }
 
+// close shuts down database connection
 func (w *dbWrapper) close() error {
 	err := w.db.Close()
 	if err != nil {
@@ -64,6 +70,7 @@ func (w *dbWrapper) close() error {
 	return nil
 }
 
+// setPlaceholders calls placeholdersProvider's placeholdersProvider if it is provided
 func (w *dbWrapper) setPlaceholders(s string) string {
 	if w.placeholdersProvider == nil {
 		return s
@@ -71,6 +78,7 @@ func (w *dbWrapper) setPlaceholders(s string) string {
 	return w.placeholdersProvider.setPlaceholders(s)
 }
 
+// hasMigrationsTable checks if the table with applied migrations data already exists
 func (w *dbWrapper) hasMigrationsTable() (bool, error) {
 	var table string
 	err := w.db.QueryRow(w.setPlaceholders(w.provider.hasTableQuery()), w.MigrationsTable).Scan(&table)
@@ -83,6 +91,7 @@ func (w *dbWrapper) hasMigrationsTable() (bool, error) {
 	return true, nil
 }
 
+// createMigrationsTable creates new table for applied migrations data
 func (w *dbWrapper) createMigrationsTable() error {
 	_, err := w.db.Exec(fmt.Sprintf(
 		"CREATE TABLE %s (version VARCHAR(14) NOT NULL, applied_at VARCHAR(14) NOT NULL, PRIMARY KEY(version));", w.MigrationsTable))
@@ -92,22 +101,25 @@ func (w *dbWrapper) createMigrationsTable() error {
 	return nil
 }
 
+// latestMigrationVersion returns a timestamp for latest migration version
 func (w *dbWrapper) latestMigrationVersion() (time.Time, error) {
-	ts, err := w.getAttrOrderedBy("version", "version DESC")
+	version, err := w.getAttrOrderedBy("version", "version DESC")
 	if err != nil {
 		return time.Time{}, errors.Wrap(err, "can't select latest migration version from database")
 	}
-	return ts, nil
+	return version, nil
 }
 
+// lastAppliedMigrationVersion returns a latest applied migration version timestamp
 func (w *dbWrapper) lastAppliedMigrationVersion() (time.Time, error) {
-	ts, err := w.getAttrOrderedBy("version", "applied_at DESC, version DESC")
+	version, err := w.getAttrOrderedBy("version", "applied_at DESC, version DESC")
 	if err != nil {
 		return time.Time{}, errors.Wrap(err, "can't select last applied migration version from database")
 	}
-	return ts, nil
+	return version, nil
 }
 
+// getAttrOrderedBy returns first attr ordered by order
 func (w *dbWrapper) getAttrOrderedBy(attr string, order string) (time.Time, error) {
 	var result string
 	err := w.db.QueryRow(fmt.Sprintf("SELECT %s FROM %s ORDER BY %s LIMIT 1", attr, w.MigrationsTable, order)).Scan(&result)
@@ -121,6 +133,7 @@ func (w *dbWrapper) getAttrOrderedBy(attr string, order string) (time.Time, erro
 	return ts, nil
 }
 
+// appliedMigrationsData returns all data from migrations table ordered by provided order variable
 func (w *dbWrapper) appliedMigrationsData(order string) ([]*migrationData, error) {
 	rows, err := w.db.Query(fmt.Sprintf("SELECT version, applied_at FROM %s ORDER BY %s", w.MigrationsTable, order))
 	if err != nil {
@@ -144,13 +157,14 @@ func (w *dbWrapper) appliedMigrationsData(order string) ([]*migrationData, error
 	return mds, nil
 }
 
-func (w *dbWrapper) insertMigrationVersion(ts time.Time, appliedAtTs time.Time, executor executor) error {
+// insertMigrationData inserts data for applied migration
+func (w *dbWrapper) insertMigrationData(version time.Time, appliedAtTs time.Time, executor executor) error {
 	if executor == nil {
 		executor = w.db
 	}
 
 	_, err := executor.Exec(w.setPlaceholders(fmt.Sprintf("INSERT INTO %s (version, applied_at) VALUES (?, ?)", w.MigrationsTable)),
-		ts.UTC().Format(TimestampFormat), appliedAtTs.UTC().Format(TimestampFormat))
+		version.UTC().Format(TimestampFormat), appliedAtTs.UTC().Format(TimestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't insert migration")
 	}
@@ -158,6 +172,7 @@ func (w *dbWrapper) insertMigrationVersion(ts time.Time, appliedAtTs time.Time, 
 	return nil
 }
 
+// countMigrationsInLastBatch returns number of migrations which were applied during the last database operation
 func (w *dbWrapper) countMigrationsInLastBatch() (int, error) {
 	var count int
 	err := w.db.QueryRow(w.setPlaceholders("SELECT COUNT(*) FROM migrations GROUP BY applied_at ORDER BY applied_at DESC LIMIT 1")).Scan(&count)
@@ -171,14 +186,15 @@ func (w *dbWrapper) countMigrationsInLastBatch() (int, error) {
 	return count, nil
 }
 
-func (w *dbWrapper) deleteMigrationVersion(ts time.Time, executor executor) error {
+// deleteMigrationVersion removes database row with given migration version
+func (w *dbWrapper) deleteMigrationVersion(version time.Time, executor executor) error {
 	if executor == nil {
 		executor = w.db
 	}
 
 	_, err := executor.Exec(w.setPlaceholders(fmt.Sprintf(
 		"DELETE FROM %s WHERE version = ?", w.MigrationsTable)),
-		ts.UTC().Format(TimestampFormat))
+		version.UTC().Format(TimestampFormat))
 	if err != nil {
 		return errors.Wrap(err, "can't delete migration")
 	}
@@ -186,6 +202,7 @@ func (w *dbWrapper) deleteMigrationVersion(ts time.Time, executor executor) erro
 	return nil
 }
 
+// execMigrationQueries executes queries from the migration file, calling func after
 func (w *dbWrapper) execMigrationQueries(query string, afterFunc func(tx *sql.Tx) error) error {
 	// using transactions, although only postgres supports supports DDL ones
 	tx, err := w.db.Begin()
@@ -193,7 +210,7 @@ func (w *dbWrapper) execMigrationQueries(query string, afterFunc func(tx *sql.Tx
 		return errors.Wrap(err, "can't begin transaction")
 	}
 
-	// split queries, because mysql driver can't exec multiple queries at once
+	// split queries and exec them one by one, because mysql driver can't exec multiple queries using one Exec call
 	queries := strings.Split(query, ";")
 	for _, q := range queries {
 		q := strings.TrimSpace(q)

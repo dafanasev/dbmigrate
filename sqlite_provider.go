@@ -14,6 +14,7 @@ func init() {
 	providers["sqlite"] = &sqliteProvider{}
 }
 
+// sqliteProvider is the provider interface implementation for sqlite
 type sqliteProvider struct{}
 
 func (p *sqliteProvider) driver() string {
@@ -29,6 +30,7 @@ func (p *sqliteProvider) dsn(settings *Settings) (string, error) {
 		return settings.Database, nil
 	}
 
+	// try to find project dir to get the path to the file holding database
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", errors.Wrap(err, "can't get working directory")

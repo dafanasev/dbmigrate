@@ -19,13 +19,14 @@ const AllSteps = 0
 
 // Migrator is the end user interface for all library operations
 type Migrator struct {
+	// Settings used by migrator
 	*Settings
-	// dbWrapper wraps db ops
+	// dbWrapper wraps database operations
 	dbWrapper  *dbWrapper
 	projectDir string
 }
 
-// NewMigrator returns Migrator instance
+// NewMigrator creates new Migrator instance
 func NewMigrator(settings *Settings) (*Migrator, error) {
 	if settings.Engine == "" {
 		return nil, errors.New("database engine not specified")
@@ -40,17 +41,28 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 
 	m := &Migrator{Settings: settings}
 
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, errors.Wrap(err, "can't get working directory")
+	}
+
+	m.projectDir, err = FindProjectDir(wd)
+	if err != nil {
+		return nil, err
+	}
+
 	p, ok := providers[settings.Engine]
 	if !ok {
 		return nil, errors.Errorf("unknown database engine %s", settings.Engine)
 	}
 
 	m.dbWrapper = newDBWrapper(settings, p)
-	err := m.dbWrapper.open()
+	err = m.dbWrapper.open()
 	if err != nil {
 		return nil, errors.Wrap(err, "can't create database connection")
 	}
 
+	// create migrations table if it is not exists yet
 	migrationsTableExists, err := m.dbWrapper.hasMigrationsTable()
 	if err != nil {
 		return nil, errors.Wrap(err, "can't check if migrations table exists")
@@ -60,16 +72,6 @@ func NewMigrator(settings *Settings) (*Migrator, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "can't create migrations table")
 		}
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, errors.Wrap(err, "can't get working directory")
-	}
-
-	m.projectDir, err = FindProjectDir(wd)
-	if err != nil {
-		return nil, err
 	}
 
 	return m, nil
@@ -137,7 +139,7 @@ func (m *Migrator) Migrate() (int, error) {
 	return m.MigrateSteps(AllSteps)
 }
 
-// MigrateSteps applies the number of migrations specified by the steps variable
+// MigrateSteps applies the number of migrations specified by the steps variable, returning number of applied migrations
 func (m *Migrator) MigrateSteps(steps int) (int, error) {
 	migrations, err := m.unappliedMigrations()
 	if err != nil {
@@ -164,7 +166,7 @@ func (m *Migrator) Rollback() (int, error) {
 	return m.RollbackSteps(0)
 }
 
-// RollbackSteps rolla back the number of migrations specified by the steps variable
+// RollbackSteps rolls back the number of migrations specified by the steps variable
 func (m *Migrator) RollbackSteps(steps int) (int, error) {
 	appliedMigrationsData, err := m.dbWrapper.appliedMigrationsData("applied_at DESC, version DESC")
 	if err != nil {
@@ -174,7 +176,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 	if steps == 0 {
 		steps, err = m.dbWrapper.countMigrationsInLastBatch()
 		if err != nil {
-			return 0, errors.Wrap(err, "can't ge migrations in last batch")
+			return 0, errors.Wrap(err, "can't get migrations in last batch")
 		}
 	}
 
@@ -182,6 +184,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 		steps = len(appliedMigrationsData)
 	}
 
+	// get migrations list
 	var migrations []*Migration
 	for _, migrationData := range appliedMigrationsData[:steps] {
 		migration, err := m.getMigration(migrationData.version, DirectionDown)
@@ -198,6 +201,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 		}
 	}
 
+	// and run them
 	for i, migration := range migrations {
 		err = m.run(migration)
 		if err != nil {
@@ -207,6 +211,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 	return len(migrations), nil
 }
 
+// run executes given migration
 func (m *Migrator) run(migration *Migration) error {
 	fpath := filepath.Join(MigrationsDir, migration.FileName())
 
@@ -216,6 +221,7 @@ func (m *Migrator) run(migration *Migration) error {
 	}
 
 	if strings.TrimSpace(string(query)) == "" {
+		// optionally allow empty down migrations, notifying about it
 		if migration.Direction == DirectionUp || (migration.Direction == DirectionDown && !m.AllowMissingDowns) {
 			return errors.New("empty query")
 		}
@@ -225,8 +231,9 @@ func (m *Migrator) run(migration *Migration) error {
 		return nil
 	}
 
+	// insert/delete migration data from the database after executing migration
 	afterFunc := func(tx *sql.Tx) error {
-		err = m.dbWrapper.insertMigrationVersion(migration.Version, migration.AppliedAt, tx)
+		err = m.dbWrapper.insertMigrationData(migration.Version, migration.AppliedAt, tx)
 		if err != nil {
 			return errors.Wrapf(err, "can't insert version for migration %s", migration.FileName())
 		}
@@ -355,7 +362,9 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 		return nil, errors.Wrap(err, "can't scan migrations directory")
 	}
 
-	sort.Sort(byTimestamp(migrations))
+	sort.Sort(byVersion(migrations))
+
+	// return an error if there are multiple migrations with the same version
 	for i := 0; i < len(migrations)-1; i++ {
 		if migrations[i].Version == migrations[i+1].Version {
 			return nil, errors.Errorf("migrations with %s are duplicated", migrations[i].Version.Format(PrintTimestampFormat))
@@ -365,6 +374,7 @@ func (m *Migrator) findMigrations(direction Direction) ([]*Migration, error) {
 	return migrations, nil
 }
 
+// unappliedMigrations returns list of all unapplied migrations
 func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 	foundMigrations, err := m.findMigrations(DirectionUp)
 	if err != nil {
@@ -393,22 +403,24 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 	return unappliedMigrations, nil
 }
 
-func (m *Migrator) getMigration(ts time.Time, direction Direction) (*Migration, error) {
-	timestampStr := ts.Format(TimestampFormat)
+// getMigration tries to find migration file and create Migration instance for given version and direction,
+// returning an error if there are multiple ones
+func (m *Migrator) getMigration(version time.Time, direction Direction) (*Migration, error) {
+	versionStr := version.Format(TimestampFormat)
 
-	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", MigrationsDir, timestampStr, direction))
+	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", MigrationsDir, versionStr, direction))
 	files, _ := filepath.Glob(pattern)
 
 	if len(files) == 0 {
-		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", MigrationsDir, timestampStr, direction, m.Engine))
+		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", MigrationsDir, versionStr, direction, m.Engine))
 		files, _ = filepath.Glob(pattern)
 	}
 
 	if len(files) == 0 {
-		return nil, errors.Errorf("migration %v with version %s does not exist", direction, timestampStr)
+		return nil, errors.Errorf("migration %v with version %s does not exist", direction, versionStr)
 	}
 	if len(files) > 1 {
-		return nil, errors.Errorf("got %d %v migration with version %s, should be only one", len(files), direction, timestampStr)
+		return nil, errors.Errorf("got %d %v migration with version %s, should be only one", len(files), direction, versionStr)
 	}
 
 	migration, err := migrationFromFileName(filepath.Base(files[0]))

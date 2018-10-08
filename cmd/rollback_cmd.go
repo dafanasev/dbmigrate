@@ -13,6 +13,7 @@ func init() {
 	rollbackCmd.Flags().IntVarP(&steps, "steps", "s", 0, "steps")
 }
 
+// rollbackCmd is the Cobra command to rollback migrations
 var rollbackCmd = &cobra.Command{
 	Use:   "rollback",
 	Short: "Rollback migrations",
@@ -25,6 +26,7 @@ If --steps (-s) flag is provided, -s migrations will be rolled back.`,
 	},
 }
 
+// rollback is the actual rollback function
 func rollback(migrator *dbmigrate.Migrator, steps int) (int, error) {
 	done := make(chan struct{})
 	gdone := make(chan struct{})

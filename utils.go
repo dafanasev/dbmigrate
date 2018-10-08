@@ -39,6 +39,7 @@ func DirectionFromString(s string) (Direction, error) {
 	}
 }
 
+// isRootDir checks if given dir is a root one, e.g. / or C:\
 func isRootDir(dir string) bool {
 	// second check is for windows
 	if dir == "/" || dir == strings.Split(dir, string(filepath.Separator))[0] {

@@ -10,12 +10,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+// viperConfigurator is the struct which sole purpose is to create proper viper instance
 type viperConfigurator struct {
+	// initial viper, that can be substituted for
 	viper      *viper.Viper
 	flags      *appFlags
 	projectDir string
 }
 
+// configure returns properly initialized viper instance
 func (vc *viperConfigurator) configure() (*viper.Viper, error) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -38,7 +41,7 @@ func (vc *viperConfigurator) configure() (*viper.Viper, error) {
 		}
 	}
 	if vc.flags.env != "" {
-		vc.scopeViper()
+		vc.scopeToEnv()
 	}
 	vc.readEnv()
 	vc.readFlags()
@@ -46,6 +49,7 @@ func (vc *viperConfigurator) configure() (*viper.Viper, error) {
 	return vc.viper, nil
 }
 
+// readConfigFile tries to read configuration from a file
 func (vc *viperConfigurator) readConfigFile() error {
 	vc.viper.AddConfigPath(vc.projectDir)
 	vc.viper.SetConfigName(vc.flags.configFile)
@@ -57,6 +61,7 @@ func (vc *viperConfigurator) readConfigFile() error {
 	return nil
 }
 
+// readKVS reads configuration from the key value store
 func (vc *viperConfigurator) readKVS() error {
 	kvsParams, err := parseKVSConnectionString(vc.flags.kvsParamsStr)
 	if err != nil {
@@ -84,7 +89,9 @@ func (vc *viperConfigurator) readKVS() error {
 	return nil
 }
 
-func (vc *viperConfigurator) scopeViper() {
+// scopeToEnv returns new viper instance using environment flag
+// new instance is either subviper of initial viper, if the needed key exists or entirely new clean viper
+func (vc *viperConfigurator) scopeToEnv() {
 	if vc.viper.IsSet(vc.flags.env) {
 		vc.viper = vc.viper.Sub(vc.flags.env)
 	} else {
@@ -92,10 +99,11 @@ func (vc *viperConfigurator) scopeViper() {
 	}
 }
 
+// readEnv builds full prefix for env vars env and reads them
 func (vc *viperConfigurator) readEnv() {
 	var envVarsPrefix string
-	if vc.flags.appName != "" {
-		envVarsPrefix = vc.flags.appName
+	if vc.flags.prefix != "" {
+		envVarsPrefix = vc.flags.prefix
 	} else {
 		envVarsPrefix = filepath.Base(vc.projectDir)
 	}
@@ -107,6 +115,7 @@ func (vc *viperConfigurator) readEnv() {
 	vc.viper.AutomaticEnv()
 }
 
+// readFlags binds cobra flags to viper
 func (vc *viperConfigurator) readFlags() error {
 	for _, flag := range []string{"engine", "database", "user", "password", "host", "port", "table", "missingdowns"} {
 		err := vc.viper.BindPFlag(flag, migrateCmd.PersistentFlags().Lookup(flag))

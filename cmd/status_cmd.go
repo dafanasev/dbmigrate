@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// statusCmd is the Cobra command that shows status of all migrations, if they were applied and when
+// also it shows latest version migration, last applied migration and if database schema is up to date or not
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Migrations status",
@@ -21,12 +23,14 @@ Also shows latest version migration and last applied migrations (they are not ne
 	},
 }
 
+// status is the actual status function
 func status(migrator *dbmigrate.Migrator) error {
 	migrations, err := migrator.Status()
 	if err != nil {
 		return errors.Wrap(err, "can't get migrations status")
 	}
 
+	// function to format appliedAt timestamp
 	appliedAtRowFn := func(appliedAt time.Time) string {
 		if appliedAt == (time.Time{}) {
 			return "-"
@@ -40,6 +44,8 @@ func status(migrator *dbmigrate.Migrator) error {
 	}
 
 	isUpToDate := true
+
+	// show igrations table
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Name", "Version", "Applied at"})
 	table.SetAutoWrapText(false)

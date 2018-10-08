@@ -9,16 +9,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+// kvsParams holds data used to connect to and get data configuration from key value store
 type kvsParams struct {
+	// provider is the key value store, consul or etcd
 	provider string
 	host     string
 	port     int
 	path     string
-	format   string
+	// format is the forat supported by Viper
+	// json, toml, yaml, properties or hcl
+	format string
 }
 
+// parseKVSConnectionString parses key vaue store connection string into kvsParams struct
 func parseKVSConnectionString(s string) (*kvsParams, error) {
-	// s must be in url format (provider://host:port/path.format)
+	// s must be in url format (provider://host(:port)/path.format)
 	u, err := url.Parse(s)
 	if err != nil {
 		return nil, errors.Wrapf(err, "can't parse string %s into components", s)
@@ -68,6 +73,7 @@ func parseKVSConnectionString(s string) (*kvsParams, error) {
 	}, nil
 }
 
+// formatEndpoint formats endpoint so it can be passed to key value store
 func (p *kvsParams) formatEndpoint() string {
 	s := fmt.Sprintf("%s:%d", p.host, p.port)
 	if p.provider == "etcd" {

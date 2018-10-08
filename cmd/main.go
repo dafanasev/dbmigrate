@@ -7,22 +7,31 @@ import (
 	_ "github.com/spf13/viper/remote"
 )
 
+// appFlags contains vars that can be specified only as flags
 type appFlags struct {
-	appName string
-	env     string
+	// prefix defines alternative prefix for environment variable names
+	prefix string
+	// Env defines optional alternative environment and thus alternative database configuration, e.g. for tests
+	env string
 
+	// config file name (without extension)
 	configFile string
 
-	kvsParamsStr      string
+	// kvsParamsStr is key value store connection string (in store://host(:port)/path.type format)
+	kvsParamsStr string
+	// secretKeyRingPath is a path to key ring file
 	secretKeyRingPath string
 }
 
 var (
+	// migrator is the Migrator instance, suddenly
 	migrator *dbmigrate.Migrator
 	flags    *appFlags
-	steps    int
+	// steps variable, used for the corresponding flag in root (migrate)/rollback/reapply commands
+	steps int
 )
 
+// migrateFlags holds variables used for flags that used by viper to provide settings for migrator
 var migrateFlags struct {
 	engine            string
 	database          string
@@ -37,7 +46,7 @@ var migrateFlags struct {
 func init() {
 	flags = &appFlags{}
 
-	migrateCmd.PersistentFlags().StringVarP(&flags.appName, "appname", "a", "", "app name (used as prefix for env vars)")
+	migrateCmd.PersistentFlags().StringVarP(&flags.prefix, "prefix", "x", "", "environment variables prefix")
 	migrateCmd.PersistentFlags().StringVarP(&flags.env, "env", "e", "", "optional environment (to support more than one database)")
 
 	migrateCmd.PersistentFlags().StringVarP(&flags.configFile, "config", "c", "dbmigrate", "config file (default is dbmigrate.yml)")
@@ -55,6 +64,8 @@ func init() {
 
 	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd, reapplyCmd)
 
+	// only here flags are parsed and viper gives proper configuration,
+	// so we initialize migrator here instead of main function
 	cobra.OnInitialize(func() {
 		v, err := (&viperConfigurator{viper: viper.GetViper(), flags: flags}).configure()
 		if err != nil {

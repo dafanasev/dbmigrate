@@ -36,6 +36,7 @@ func Test_dbWrapper_setPlaceholders(t *testing.T) {
 }
 
 func Test_dbWrapper(t *testing.T) {
+	// test for all dbWrapper functions except execMigrationsQuery on all supported engines
 	for engine, provider := range providers {
 		s := &Settings{Engine: engine, Database: "migrate_test", User: "dbmigrate", Password: "mysecretpassword", MigrationsTable: "migrations"}
 		if engine == "postgres" {
@@ -79,7 +80,7 @@ func Test_dbWrapper(t *testing.T) {
 		baseTs := time.Date(2010, 6, 7, 8, 9, 10, 0, time.UTC)
 		now := time.Now().UTC().Truncate(time.Second)
 		for i := 0; i < 2; i++ {
-			err = w.insertMigrationVersion(baseTs.Add(time.Duration(i)*time.Second), now, nil)
+			err = w.insertMigrationData(baseTs.Add(time.Duration(i)*time.Second), now, nil)
 			assert.NoError(t, err)
 		}
 
@@ -147,13 +148,13 @@ func Test_dbWrapper_execMigrationQueries(t *testing.T) {
 			return nil
 		}
 
-		// wrong one command query
+		// incorrect one command query
 		err := w.execMigrationQueries("CREATE TABLE posts ERROR title VARCHAR(255) NOT NULL, PRIMARY KEY(title));", afterFunc)
 		assert.Error(t, err)
 		tableExists, _ := w.hasMigrationsTable()
 		assert.False(t, tableExists)
 
-		// right one command query
+		// correct one command query
 		query := "CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));"
 		err = w.execMigrationQueries(query, afterFunc)
 		assert.NoError(t, err)
@@ -163,7 +164,7 @@ func Test_dbWrapper_execMigrationQueries(t *testing.T) {
 		assert.Equal(t, "posts", table)
 		w.db.Exec("DROP TABLE posts;")
 
-		// right multiple commands query
+		// correct multiple commands query
 		query = `
 			CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));
 			ALTER TABLE posts ADD content TEXT;
@@ -177,7 +178,7 @@ func Test_dbWrapper_execMigrationQueries(t *testing.T) {
 		assert.Equal(t, "First post", title)
 		w.db.Exec("DROP TABLE posts;")
 
-		// wrong multiple commands query
+		// incorrect multiple commands query
 		query = `
 			CREATE TABLE posts (title VARCHAR(255) NOT NULL, PRIMARY KEY(title));
 			INSERT INTO posts (title) VALUES ('First post');

@@ -13,6 +13,7 @@ func init() {
 	reapplyCmd.Flags().IntVarP(&steps, "steps", "s", 0, "steps")
 }
 
+// reapplyCmd is the Cobra command to reapply last migration operation or specified number of migrations
 var reapplyCmd = &cobra.Command{
 	Use:   "reapply",
 	Short: "Reapply migrations",
@@ -25,6 +26,7 @@ If --steps (-s) flag is provided, -s migrations will be reapplied.`,
 	},
 }
 
+// reapply is the actual reapply function
 func reapply(migrator *dbmigrate.Migrator, steps int) (int, error) {
 	done := make(chan struct{})
 	gdone := make(chan struct{})

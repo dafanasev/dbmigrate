@@ -85,7 +85,7 @@ func Test_viperConfigurator_readKVS(t *testing.T) {
 	}
 }
 
-func Test_viperConfigurator_scopeViper(t *testing.T) {
+func Test_viperConfigurator_scopeToEnv(t *testing.T) {
 	createConfigFiles()
 	defer removeConfigFiles()
 
@@ -93,12 +93,12 @@ func Test_viperConfigurator_scopeViper(t *testing.T) {
 
 	vc := &viperConfigurator{viper: viper.New(), flags: &appFlags{env: "test"}, projectDir: projectDir}
 	vc.readConfigFile()
-	vc.scopeViper()
+	vc.scopeToEnv()
 	assert.Empty(t, vc.viper.GetString("engine"))
 
 	vc = &viperConfigurator{viper: viper.New(), flags: &appFlags{env: "test", configFile: "dbmigrate.test"}, projectDir: projectDir}
 	vc.readConfigFile()
-	vc.scopeViper()
+	vc.scopeToEnv()
 	assert.Equal(t, "sqlite", vc.viper.GetString("engine"))
 }
 
@@ -107,7 +107,7 @@ func Test_viperConfigurator_readEnv(t *testing.T) {
 
 	for _, appName := range []string{"", "theservice"} {
 		for _, env := range []string{"", "test"} {
-			vc := &viperConfigurator{viper: viper.New(), flags: &appFlags{appName: appName, env: env}, projectDir: projectDir}
+			vc := &viperConfigurator{viper: viper.New(), flags: &appFlags{prefix: appName, env: env}, projectDir: projectDir}
 			vc.readEnv()
 
 			envVarsPrefix := "THESERVICE"

@@ -12,6 +12,7 @@ func init() {
 	migrateCmd.Flags().IntVarP(&steps, "steps", "s", 0, "steps")
 }
 
+// migrateCmd is the root Cobra command, used to migrate database schema
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
 	Short: "Apply migrations",
@@ -24,6 +25,7 @@ If --steps (-s) flag is provided, only -s migrations will.`,
 	},
 }
 
+// migrate is the actual migration function
 func migrate(migrator *dbmigrate.Migrator, steps int) (int, error) {
 	done := make(chan struct{})
 	gdone := make(chan struct{})

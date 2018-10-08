@@ -66,24 +66,24 @@ func Test_Migrator_getMigration(t *testing.T) {
 	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 7, 42, 0, time.UTC), DirectionUp)
 	assert.Contains(t, err.Error(), "does not exist")
 
-	// multiple migrations for the timestamp
+	// multiple migrations for the version
 	_, err = m.getMigration(time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC), DirectionUp)
 	assert.Contains(t, err.Error(), "should be only one")
 
 	// correct for any engine
-	ts := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
-	migration, err := m.getMigration(ts, DirectionUp)
+	v := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
+	migration, err := m.getMigration(v, DirectionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected := &Migration{Version: ts, Name: "correct", Direction: DirectionUp}
+	expected := &Migration{Version: v, Name: "correct", Direction: DirectionUp}
 	assert.Equal(t, expected, migration)
 
 	// correct for the isSpecific engine
-	ts = time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC)
-	migration, err = m.getMigration(ts, DirectionUp)
+	v = time.Date(2018, 9, 18, 20, 10, 19, 0, time.UTC)
+	migration, err = m.getMigration(v, DirectionUp)
 	require.NoError(t, err)
 	assert.NotNil(t, migration)
-	expected = &Migration{Version: ts, Name: "specific_engine_correct", Direction: DirectionUp, Engine: "sqlite"}
+	expected = &Migration{Version: v, Name: "specific_engine_correct", Direction: DirectionUp, Engine: "sqlite"}
 	assert.Equal(t, expected, migration)
 }
 
@@ -121,7 +121,7 @@ func Test_Migrator_unappliedMigrations(t *testing.T) {
 		}
 
 		if i < 3 {
-			m.dbWrapper.insertMigrationVersion(migrations[i].Version, time.Now(), nil)
+			m.dbWrapper.insertMigrationData(migrations[i].Version, time.Now(), nil)
 		}
 	}
 }
@@ -158,28 +158,28 @@ func TestMigrator_Migrator_LatestVersionAndLastAppliedMigration(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, lam)
 
-	ts1 := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
-	ts2 := time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC)
+	v1 := time.Date(2018, 9, 18, 20, 4, 53, 0, time.UTC)
+	v2 := time.Date(2018, 9, 18, 20, 6, 32, 0, time.UTC)
 
-	_ = m.dbWrapper.insertMigrationVersion(ts1, time.Now(), nil)
+	_ = m.dbWrapper.insertMigrationData(v1, time.Now(), nil)
 	lvm, err = m.LatestVersionMigration()
 	require.NoError(t, err)
-	assert.Equal(t, ts1, lvm.Version)
+	assert.Equal(t, v1, lvm.Version)
 	lam, err = m.LastAppliedMigration()
 	require.NoError(t, err)
-	assert.Equal(t, ts1, lam.Version)
+	assert.Equal(t, v1, lam.Version)
 
 	// earlier applied_at
-	_ = m.dbWrapper.insertMigrationVersion(ts2, time.Now().Add(-5*time.Second), nil)
+	_ = m.dbWrapper.insertMigrationData(v2, time.Now().Add(-5*time.Second), nil)
 	lvm, err = m.LatestVersionMigration()
 	require.NoError(t, err)
-	assert.Equal(t, ts2, lvm.Version)
+	assert.Equal(t, v2, lvm.Version)
 	lam, err = m.LastAppliedMigration()
 	require.NoError(t, err)
-	assert.Equal(t, ts1, lam.Version)
+	assert.Equal(t, v1, lam.Version)
 
 	// not existing migration
-	_ = m.dbWrapper.insertMigrationVersion(time.Date(2018, 9, 18, 22, 2, 34, 0, time.UTC), time.Now(), nil)
+	_ = m.dbWrapper.insertMigrationData(time.Date(2018, 9, 18, 22, 2, 34, 0, time.UTC), time.Now(), nil)
 	_, err = m.LatestVersionMigration()
 	assert.Contains(t, err.Error(), "can't get latest migration with version")
 	_, err = m.LastAppliedMigration()

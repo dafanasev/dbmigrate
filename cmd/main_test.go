@@ -8,6 +8,7 @@ import (
 	"github.com/dafanasev/dbmigrate"
 )
 
+// createTestMigrations cretaes migrations used for tests
 func createTestMigrations() {
 	filesData := map[string]string{
 		"20180918200453.first.up.sql":           "CREATE TABLE posts (title VARCHAR NOT NULL, content TEXT NOT NULL, PRIMARY KEY(title));",

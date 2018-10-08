@@ -11,6 +11,7 @@ func init() {
 	providers["mysql"] = &mysqlProvider{}
 }
 
+// mysqlProvider is the provider interface implementation for mysql
 type mysqlProvider struct {
 	defaultProvider
 }

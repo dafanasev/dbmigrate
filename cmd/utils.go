@@ -18,6 +18,7 @@ func exitWithError(err error) {
 	os.Exit(1)
 }
 
+// pluralize currently just adds 's' to the given word if n != 1
 func pluralize(s string, n int) string {
 	if n != 1 {
 		return s + "s"

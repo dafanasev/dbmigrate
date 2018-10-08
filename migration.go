@@ -19,11 +19,11 @@ type Migration struct {
 	Engine    string
 }
 
-type byTimestamp []*Migration
+type byVersion []*Migration
 
-func (bts byTimestamp) Len() int           { return len(bts) }
-func (bts byTimestamp) Swap(i, j int)      { bts[i], bts[j] = bts[j], bts[i] }
-func (bts byTimestamp) Less(i, j int) bool { return bts[i].Version.Unix() < bts[j].Version.Unix() }
+func (bv byVersion) Len() int           { return len(bv) }
+func (bv byVersion) Swap(i, j int)      { bv[i], bv[j] = bv[j], bv[i] }
+func (bv byVersion) Less(i, j int) bool { return bv[i].Version.Unix() < bv[j].Version.Unix() }
 
 // FileName builds migration file name from metadata
 func (m *Migration) FileName() string {
@@ -41,6 +41,7 @@ func (m *Migration) HumanName() string {
 	return strings.Replace(m.Name, "_", " ", -1)
 }
 
+// migrationFromFileName tries to parse migration metadata from the filename
 func migrationFromFileName(fname string) (*Migration, error) {
 	errMsg := fmt.Sprintf("can't parse migration from filename %s", fname)
 
@@ -62,9 +63,8 @@ func migrationFromFileName(fname string) (*Migration, error) {
 		return nil, errors.Wrap(err, errMsg)
 	}
 
-	// Migration that should be run on isSpecific dbWrapper only
+	// engine specific migration
 	var engine string
-	// 4 for .sql extension
 	if len(parts) > 4 {
 		if _, ok := providers[strings.ToLower(parts[3])]; !ok {
 			return nil, errors.Errorf("%s, engine is not known", errMsg)
