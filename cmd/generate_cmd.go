@@ -10,7 +10,7 @@ import (
 )
 
 // enginesNoOptDefVal is the constant used to specify that migration should be created for the current (used in migrator) database engine only
-const enginesNoOptDefVal = "currentEngine"
+const enginesNoOptDefVal = "currentengine"
 
 // migrationsGeneratorEngines used by flag which specifies database engines to create migrations for
 var migrationsGeneratorEngines []string
@@ -26,7 +26,7 @@ var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate migration",
 	Long: `Generate up and down migrations, use args to build migration name,
-e.g. dbmigrate generate Create posts table will become create_posts_table in the generated migration name`,
+e.g. dbmigrate generate Create posts table will become create_posts_table in the generated migration name.`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return generateMigration(migrator, migrationsGeneratorEngines, args...)

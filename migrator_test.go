@@ -142,7 +142,7 @@ func Test_Migrator_findProjectDir(t *testing.T) {
 
 	os.Rename(MigrationsDir, "!"+MigrationsDir)
 	_, err = FindProjectDir(wd)
-	assert.EqualError(t, err, "project dir not found")
+	assert.EqualError(t, err, "dbmigrations dir not found")
 	os.Rename("!"+MigrationsDir, MigrationsDir)
 }
 

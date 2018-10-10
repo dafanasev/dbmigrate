@@ -46,20 +46,20 @@ var migrateFlags struct {
 func init() {
 	flags = &appFlags{}
 
-	migrateCmd.PersistentFlags().StringVarP(&flags.prefix, "prefix", "x", "", "environment variables prefix")
-	migrateCmd.PersistentFlags().StringVarP(&flags.env, "env", "e", "", "optional environment (to support more than one database)")
+	migrateCmd.PersistentFlags().StringVarP(&flags.prefix, "prefix", "x", "", "environment variables prefix, default is the project dir name")
+	migrateCmd.PersistentFlags().StringVarP(&flags.env, "env", "e", "", "optional environment (to support more than one database, e.g. for tests)")
 
-	migrateCmd.PersistentFlags().StringVarP(&flags.configFile, "config", "c", "dbmigrate", "config file (default is dbmigrate.yml)")
-	migrateCmd.PersistentFlags().StringVarP(&flags.kvsParamsStr, "kvsparams", "k", "", "key value connection string, (provider://host:port/path.format")
+	migrateCmd.PersistentFlags().StringVarP(&flags.configFile, "config", "c", "dbmigrate", "config file, default is dbmigrate.yml")
+	migrateCmd.PersistentFlags().StringVarP(&flags.kvsParamsStr, "kvsparams", "k", "", "key value connection string, format is provider://host:port/path.type")
 	migrateCmd.PersistentFlags().StringVarP(&flags.secretKeyRingPath, "secretkeyring", "r", "", "secret key ring path")
 
-	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.engine, "engine", "n", "", "database engine")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.engine, "engine", "n", "", "database engine (postgres, mysql or sqlite)")
 	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.database, "database", "d", "", "database name")
 	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.user, "user", "u", "", "database user")
 	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.password, "password", "p", "", "database password")
-	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.host, "host", "b", "", "database host")
-	migrateCmd.PersistentFlags().IntVarP(&migrateFlags.port, "port", "o", 0, "database port")
-	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.migrationsTable, "table", "t", "", "migrations table")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.host, "host", "b", "", "database host, default is localhost")
+	migrateCmd.PersistentFlags().IntVarP(&migrateFlags.port, "port", "o", 0, "database port, default is specific for each database engine")
+	migrateCmd.PersistentFlags().StringVarP(&migrateFlags.migrationsTable, "table", "t", "", "migrations table, default is migrations")
 	migrateCmd.PersistentFlags().BoolVarP(&migrateFlags.allowMissingDowns, "missingdowns", "m", false, "allow missing down migrations")
 
 	migrateCmd.AddCommand(generateCmd, statusCmd, rollbackCmd, reapplyCmd)
@@ -95,5 +95,7 @@ func main() {
 		exitWithError(err)
 	}
 
-	migrator.Close()
+	if migrator != nil {
+		migrator.Close()
+	}
 }

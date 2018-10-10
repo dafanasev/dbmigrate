@@ -1,0 +1,8 @@
+engine: postgres
+database: blog
+user: author
+password: topsecret
+
+test:
+  engine: sqlite
+  database: blog.db

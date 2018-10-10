@@ -64,7 +64,7 @@ func FindProjectDir(fromDir string) (string, error) {
 	}
 
 	if isRootDir(fromDir) {
-		return "", errors.New("project dir not found")
+		return "", errors.New("dbmigrations dir not found")
 	}
 
 	return FindProjectDir(filepath.Dir(fromDir))
