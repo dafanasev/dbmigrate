@@ -112,14 +112,14 @@ func Test_viperConfigurator_readEnv(t *testing.T) {
 
 			envVarsPrefix := "THESERVICE"
 			if appName == "" {
-				envVarsPrefix = "CMD"
+				envVarsPrefix = "DBMIGRATE"
 			}
 			if env != "" {
 				envVarsPrefix += "_TEST"
 			}
 
 			os.Setenv(envVarsPrefix+"_ENGINE", "sqlite")
-			assert.Equal(t, "sqlite", vc.viper.GetString("engine"))
+			assert.Equalf(t, "sqlite", vc.viper.GetString("engine"), envVarsPrefix)
 			os.Unsetenv(envVarsPrefix + "_ENGINE")
 		}
 	}

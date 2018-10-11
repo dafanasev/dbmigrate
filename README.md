@@ -65,13 +65,13 @@ The full list of command line flags can be obtained by running dbmigrate --help.
 #### Environment variables
 Environment variables names should be in the following format:
 uppercased project dir name (the one holding dbmigrations dir) followed by correspnding flag name, joined by underscore and uppercased.
-For example, the environment variable name for the database engine for the project that located in the directory named weeebservice would be `WEEEBSERVICE_ENGINE`.
+For example, the environment variable name for the database engine for the project that located in the directory named theservice would be `THESERVICE_ENGINE`.
 
 If the --prefix (-x) flag is provided, it would be used instead of project dir as environment variables prefix.
 
 if the --env (-e) flag is provided, it would be used as a second part of the variable name, 
-e.g. when the --env flag set to 'test' and the project is in the directory weebservice, 
-variable name for engine would be `WEEEBSERVICE_TEST_ENGINE`
+e.g. when the --env flag set to 'test' and the project is in the directory theservice, 
+variable name for engine would be `THESERVICE_TEST_ENGINE`
 
 #### Configuration files
 Configuration files could be in in JSON, TOML, YAML, HCL, or Java properties format. 
