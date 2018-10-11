@@ -7,11 +7,11 @@
 # dbmigrate
 
 ## Overview
-__dbmigrate is a sql database migration tool.__
+__dbmigrate is a sql database migration tool.__   
 
-It does not use any DSL for migrations, just plain old SQL we all know and love.   
+dbmigrate can be used both as a CLI application or Go package, it does not use any DSL for migrations, just plain old SQL we all know and love
+so it can be used with any framework and programming language. 
 
-dbmigrate can be used both as a CLI application or Go package.
 This readme covers CLI tool, for the Go package documentation please look at https://godoc.org/github.com/dafanasev/dbmigrate
 
 ## Features

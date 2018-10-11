@@ -1,3 +1,7 @@
+// Package dbmigrate is a sql database migration tool.
+//
+// dbmigrate can be used both as a CLI application or Go package, it does not use any DSL for migrations, just plain old SQL we all know and love
+// so it can be used with any framework and programming language.
 package dbmigrate
 
 import (
