@@ -10,13 +10,13 @@
 ## Overview
 __dbmigrate is a sql database migration tool.__   
 
-dbmigrate can be used both as a CLI application or Go package, it does not use any DSL for migrations, just plain old SQL we all know and love
-so it can be used with any framework and programming language. 
+It can be used both as a CLI application and as a Go package, does not use any DSL for migrations, just plain old SQL we all know and love
+so it is compatible with any framework and programming language.
 
-This readme covers CLI tool, for the Go package documentation please look at https://godoc.org/github.com/dafanasev/dbmigrate
+This readme covers the CLI app, for the Go package documentation please look at https://godoc.org/github.com/dafanasev/dbmigrate
 
 ## Features
-* Can be used as a CLI app or as a Go package
+* Can be used as a CLI app and as a Go package
 * Support for PostgreSQL, MySQL and SQLite
 * Migrations generator
 * Up and down migrations in different files
@@ -28,27 +28,29 @@ This readme covers CLI tool, for the Go package documentation please look at htt
 * Gets database connection settings from command line flags, environment variables, file in JSON, TOML, YAML, HCL, or Java properties format, consul or etcd.
 * Support for different environments, e.g. for tests
 
-## Install
+## Installation
 * using homebrew: `brew tap dafanasev/homebrew-tap`,  `brew install dbmigrate`
-* using go get: `go get -u github.com/dafanasev/dbmigrate`
-* download binaries from https://github.com/dafanasev/dbmigrate/releases
+* using go get: `go get -u github.com/dafanasev/dbmigrate/cmd/dbmigrate`
+* using binaries: https://github.com/dafanasev/dbmigrate/releases
 
 ## Usage
-dbmigrate command could be called from any subdirectory of a directory containing dbmigrations directory, there migrations should be stored.  
+dbmigrate command can be called from any subdirectory of a directory containing the dbmigrations directory, where migrations are stored.  
 
 ### Database settings
 In order to use dbmigrate you should provide database settings.
-Mandatory settings are database engine (postgres, mysql or sqlite), database name and user (except for sqlite).
-Host defaults to localhost and port has a specific default value for each database engine.
+Mandatory settings include database engine (postgres, mysql or sqlite), database name and user (except for sqlite).
+Host defaults to `localhost` and port has a specific default value for each database engine.
  
 Settings can be read from the following sources, sorted by precedence: 
 * Command line flags
 * Environment variables
 * Configuration files (in JSON, TOML, YAML, HCL, or Java properties format)
-* Key value store (consul or etcd)
+* Key-value store (consul or etcd)
+
+So, if both the --engine flag and the engine entry in the configuration file are provided the flag value will be used.
 
 #### Environments
-When using environment variables, configuration files or key value store the --environment (-e) command line flag can be provided 
+When using environment variables, configuration files or key-value store the --environment (-e) command line flag can be provided 
 to specify alternative database settings if your project uses more than one database, e.g. for tests. 
 
 #### Command line flags
@@ -70,7 +72,7 @@ For example, the environment variable name for the database engine for the proje
 
 If the --prefix (-x) flag is provided, it would be used instead of project dir as environment variables prefix.
 
-if the --env (-e) flag is provided, it would be used as a second part of the variable name, 
+If the --env (-e) flag is provided, it would be used as a second part of the variable name, 
 e.g. when the --env flag set to 'test' and the project is in the directory theservice, 
 variable name for engine would be `THESERVICE_TEST_ENGINE`
 
@@ -102,10 +104,14 @@ path is the key path and type is the file format used to encode the config.
 File formats are the same ones as used for configuration files.
 
 [crypt](https://github.com/xordataexchange/crypt) can be used to put configurations in the key-value store, e.g.:
-`crypt set -endpoint http://localhost:2379 -plaintext /configs/weebservice weebservice.json`
+`crypt set -endpoint http://localhost:2379 -plaintext /configs/theservice theservice.json`
 
 if the --secretkeyring (-r) flag is provided, which should point to the path of a secret key ring path, 
 the configuration will be stored encrypted and will be automatically decrypted when retrieved.
+
+### Other settings
+The --missingdowns (-m) boolean flag, the {APP}_MISSINGDOWNS environment variable or the corresponding entry in the configuration file 
+specifies if it is ok to have missing or empty down migrations. Default is false which means that dbmigrate will exit with an error if this happens. 
 
 ### Commands
 dbmigrate has the following commands: generate, migrate (the root, default command), rollback, reapply and status.
@@ -121,12 +127,13 @@ and corresponding down migrations.
 If the --engines flag is set without value, the database engine specified in connection settings will be used,
 e.g. `dbmigrate -n=sqlite -d=test.db generate Posts table` will generate TIMESTAMP_posts_table.up.sqlite.sql and TIMESTAMP_posts_table.down.sqlite.sql files.
 
-
 #### Migrate
 The migrate command applies all unapplied migrations or, if the --steps (-s) flag is set, only -s migrations.
+Migrate is the root command, so running it as simple as calling `dbmigrate` without any subcommand. 
 
 #### Rollback
-The rollback command rolls back the latest migration operation, e.g. if 3 migrations have been applied during the last operation, exactly these 3 migrations will be rolled back.
+The rollback command rolls back the latest migration operation, e.g. if 3 migrations were applied during the last operation, 
+then exactly these 3 migrations would be rolled back.
 If the --steps (-s) flag is set, exactly -s migrations will be rolled back.
 
 #### Reapply
@@ -137,9 +144,6 @@ If the --steps (-s) flag is set, exactly -s migrations will be reapplied.
 The status command shows migrations list with names, versions and applied at times, if the migration was applied.
 It also shows the latest version migration, the last applied migrations (they are not necessarily the same ones), 
 number of applied migrations and if the database schema is up to date or not. 
-
-### Other settings
-The --missingdowns (-m) boolean flag specifies if it is ok to have missing or empty down migrations.
  
 ## Todo
 - [ ] Embed migrations into binary or get them from zip/tar archives, http, ssh, s3 or github
