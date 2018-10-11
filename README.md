@@ -1,4 +1,5 @@
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](/LICENSE)
+[![Release](https://img.shields.io/github/release/dafanasev/dbmigrate.svg)](https://github.com/dafanasev/dbmigrate/releases)
 [![Build Status](https://travis-ci.org/dafanasev/lu.svg?branch=master)](https://travis-ci.org/dafanasev/dbmigrate)
 [![GoDoc](https://godoc.org/github.com/dafanasev/go-yandex-translate?status.svg)](https://godoc.org/github.com/dafanasev/dbmigrate)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dafanasev/lu)](https://goreportcard.com/report/github.com/dafanasev/dbmigrate)
@@ -74,7 +75,7 @@ e.g. when the --env flag set to 'test' and the project is in the directory these
 variable name for engine would be `THESERVICE_TEST_ENGINE`
 
 #### Configuration files
-Configuration files could be in in JSON, TOML, YAML, HCL, or Java properties format. 
+Configuration files could be in JSON, TOML, YAML, HCL, or Java properties format. 
 Default file name is dbmigrate, so dbmigrate looks for dbmigrate.yml, dbmigrate.yaml, dbmigrate.json, etc.
 The alternative configuration file name (without extension) can be set using the --config (-c) flag.
 
