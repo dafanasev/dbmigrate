@@ -28,7 +28,7 @@ This readme covers CLI tool, for the Go package documentation please look at htt
 * Support for different environments, e.g. for tests
 
 ## Install
-* using homebrew: `brew install dbmigrate`
+* using homebrew: `brew tap dafanasev/dbmigrate && brew install dafanasev/dbmigrate`
 * using go get: `go get -u github.com/dafanasev/dbmigrate`
 * download binaries from https://github.com/dafanasev/dbmigrate/releases
 

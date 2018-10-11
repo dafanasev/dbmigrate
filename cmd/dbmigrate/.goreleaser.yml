@@ -20,3 +20,23 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
+
+brew:
+  # Repository to push the tap to.
+  github:
+    owner: dafanasev
+    name: dbmigrate
+
+  # Git author used to commit to the repository.
+  # Defaults are shown.
+  commit_author:
+    name: Dmitrii Afanasev
+    email: nuclear.tools@gmail.com
+
+  # Your app's homepage.
+  # Default is empty.
+  homepage: "https://github.com/dafanasev/dbmigrate/"
+
+  # Your app's description.
+  # Default is empty.
+  description: "sql database migration tool"
