@@ -416,11 +416,11 @@ func (m *Migrator) unappliedMigrations() ([]*Migration, error) {
 func (m *Migrator) getMigration(version time.Time, direction Direction) (*Migration, error) {
 	versionStr := version.Format(TimestampFormat)
 
-	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", MigrationsDir, versionStr, direction))
+	pattern := filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.sql", filepath.Join(m.projectDir, MigrationsDir), versionStr, direction))
 	files, _ := filepath.Glob(pattern)
 
 	if len(files) == 0 {
-		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", MigrationsDir, versionStr, direction, m.Engine))
+		pattern = filepath.FromSlash(fmt.Sprintf("%s/%s.*.%v.%s.sql", filepath.Join(m.projectDir, MigrationsDir), versionStr, direction, m.Engine))
 		files, _ = filepath.Glob(pattern)
 	}
 
