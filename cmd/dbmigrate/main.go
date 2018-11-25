@@ -76,6 +76,7 @@ func init() {
 			Engine:            v.GetString("engine"),
 			Database:          v.GetString("database"),
 			User:              v.GetString("user"),
+			Password:          v.GetString("password"),
 			Host:              v.GetString("host"),
 			Port:              v.GetInt("port"),
 			MigrationsTable:   v.GetString("table"),
