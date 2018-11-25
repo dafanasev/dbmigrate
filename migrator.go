@@ -221,7 +221,7 @@ func (m *Migrator) RollbackSteps(steps int) (int, error) {
 
 // run executes given migration
 func (m *Migrator) run(migration *Migration) error {
-	fpath := filepath.Join(MigrationsDir, migration.FileName())
+	fpath := filepath.Join(m.projectDir, MigrationsDir, migration.FileName())
 
 	query, err := ioutil.ReadFile(fpath)
 	if err != nil {
